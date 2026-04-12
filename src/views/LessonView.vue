@@ -110,7 +110,10 @@ const allChallengesDone = computed(() =>
   lesson.value?.challenges?.every(ch => progress.isChallengeComplete(ch.id))
 )
 
-const isLessonFullyComplete = computed(() => allChallengesAlreadyDone && theoryAlreadyDone)
+const isLessonFullyComplete = computed(() =>
+  (lesson.value?.challenges?.every(ch => progress.isChallengeComplete(ch.id)) ?? false) &&
+  progress.isLessonComplete(lesson.value?.id)
+)
 </script>
 
 <template>
@@ -172,8 +175,15 @@ const isLessonFullyComplete = computed(() => allChallengesAlreadyDone && theoryA
       <div v-if="!isLessonFullyComplete && activeTab === 'theory'" class="tab-content animate-fade-in">
         <!-- Banner pós-conclusão -->
         <template v-if="showTheoryCompletion">
-          <div class="all-done-banner mt-3">
-            🎉 Teoria concluída!
+          <div class="lesson-complete-card card mt-3 animate-fade-in">
+            <div class="lc-icon">🎉</div>
+            <div class="lc-body">
+              <h3>Teoria concluída!</h3>
+              <p class="text-muted">Agora coloque em prática o que aprendeu.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" @click="activeTab = 'challenges'">
+              Ir para Desafios ⚔️
+            </button>
           </div>
         </template>
 
@@ -269,8 +279,12 @@ const isLessonFullyComplete = computed(() => allChallengesAlreadyDone && theoryA
             <div class="unlock-badge">🔒</div>
           </div>
 
-          <div v-if="showCompletion" class="all-done-banner mt-3">
-            🎉 Desafios concluídos!
+          <div v-if="showCompletion" class="lesson-complete-card card mt-3 animate-fade-in">
+            <div class="lc-icon">⚔️</div>
+            <div class="lc-body">
+              <h3>Desafios concluídos!</h3>
+              <p class="text-muted">Todos os desafios desta lição foram completados.</p>
+            </div>
             <RouterLink v-if="isModuleComplete" to="/review" class="btn btn-primary btn-sm">
               Ir para revisão →
             </RouterLink>
