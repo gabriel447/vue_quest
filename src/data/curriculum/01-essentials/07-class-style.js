@@ -9,8 +9,7 @@ export default {
   theory: [
     {
       title: ':class com objeto — classes condicionais',
-      body: `Use :class com um objeto onde as chaves são nomes de classes e os valores são condições booleanas.
-Vue adiciona a classe apenas quando o valor é truthy. Pode coexistir com o atributo class estático.`,
+      body: `Use :class com um objeto para aplicar classes condicionalmente. A chave é o nome da classe, o valor é true/false. Você pode ter um class estático e um :class dinâmico no mesmo elemento — o Vue mescla automaticamente.`,
       code: `<script setup>
 import { ref } from 'vue'
 const isActive = ref(true)
@@ -19,10 +18,10 @@ const isLoading = ref(false)
 </script>
 
 <template>
-  <!-- Objeto inline -->
+  <!-- Objeto inline — classes aparecem quando o valor é truthy -->
   <div :class="{ active: isActive, error: hasError }">...</div>
 
-  <!-- Estático + dinâmico juntos -->
+  <!-- Estático e dinâmico juntos no mesmo elemento -->
   <button class="btn" :class="{ loading: isLoading, disabled: !isActive }">
     Enviar
   </button>
@@ -32,16 +31,14 @@ const isLoading = ref(false)
 </template>`,
     },
     {
-      title: ':class com computed — objeto separado',
-      body: `Para classes mais complexas, extraia o objeto para uma computed property.
-Isso mantém o template limpo e a lógica testável.`,
+      title: ':class com computed — lógica complexa no script',
+      body: `Quando a lógica de classes fica complexa demais para o template, extraia para uma computed. O template fica limpo e a lógica fica no script onde você pode ler, testar e reutilizar.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 
 const status = ref('success') // 'success' | 'error' | 'warning'
 const isLarge = ref(true)
 
-// Objeto de classes em computed → template limpo
 const cardClasses = computed(() => ({
   'card': true,
   'card--success': status.value === 'success',
@@ -52,7 +49,7 @@ const cardClasses = computed(() => ({
 </script>
 
 <template>
-  <!-- Template limpo, lógica no computed -->
+  <!-- Template limpo — lógica toda no computed -->
   <div :class="cardClasses">
     Mensagem de status
   </div>
@@ -60,8 +57,9 @@ const cardClasses = computed(() => ({
     },
     {
       title: ':class com array — múltiplas classes',
-      body: `Use um array para aplicar múltiplas classes. Pode misturar strings, refs e objetos dentro do array.`,
+      body: `Passe um array para aplicar múltiplas classes de uma vez. Pode misturar strings fixas, refs e objetos condicionais no mesmo array — tudo funciona junto.`,
       code: `<script setup>
+import { ref } from 'vue'
 const baseClass = ref('btn')
 const sizeClass = ref('btn--lg')
 const isActive = ref(true)
@@ -85,8 +83,7 @@ const theme = 'dark'  // string estática
     },
     {
       title: ':style com objeto — estilos dinâmicos',
-      body: `Use :style com um objeto CSS. As propriedades podem ser camelCase ou kebab-case (entre aspas).
-Vue adiciona prefixos de vendor automaticamente quando necessário.`,
+      body: `Para estilos inline dinâmicos, use :style com um objeto CSS. Propriedades em camelCase. O Vue adiciona prefixos de vendor (webkit-, moz-) automaticamente quando necessário.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 
@@ -94,29 +91,30 @@ const color = ref('#42b883')
 const fontSize = ref(16)
 const opacity = ref(1)
 
-// Objeto de estilos em computed
 const textStyle = computed(() => ({
   color: color.value,
-  fontSize: fontSize.value + 'px',
+  fontSize: fontSize.value + 'px',  // sempre coloque a unidade!
   opacity: opacity.value,
   fontWeight: 'bold',
-  textShadow: \`0 0 10px \${color.value}\`,
 }))
 </script>
 
 <template>
-  <!-- Objeto inline -->
+  <!-- Objeto inline simples -->
   <p :style="{ color, fontSize: fontSize + 'px' }">Texto</p>
 
-  <!-- computed (melhor prática) -->
-  <p :style="textStyle">Texto com estilo</p>
+  <!-- computed para estilos complexos (melhor prática) -->
+  <p :style="textStyle">Texto com estilo dinâmico</p>
 </template>`,
     },
     {
       title: ':style com array — múltiplos objetos',
-      body: `Passe um array de objetos de estilo para combinar múltiplos estilos.
-O último objeto tem prioridade sobre os anteriores.`,
+      body: `Passe um array de objetos para :style para combinar múltiplos conjuntos de estilos. O último objeto tem prioridade sobre os anteriores — exatamente como cascata CSS.`,
       code: `<script setup>
+import { ref, computed } from 'vue'
+
+const isDark = ref(false)
+
 const baseStyles = {
   fontFamily: "'Fira Code', monospace",
   borderRadius: '8px',
@@ -127,13 +125,11 @@ const themeStyles = computed(() => ({
   background: isDark.value ? '#1a1a2e' : '#ffffff',
   color: isDark.value ? '#f8f8f2' : '#1a1a2e',
 }))
-
-const customStyles = { border: '2px solid #42b883' }
 </script>
 
 <template>
-  <!-- Array combina todos os objetos -->
-  <div :style="[baseStyles, themeStyles, customStyles]">
+  <!-- Array combina todos os objetos — último tem prioridade -->
+  <div :style="[baseStyles, themeStyles]">
     Conteúdo estilizado
   </div>
 </template>`,
@@ -169,8 +165,7 @@ const customStyles = { border: '2px solid #42b883' }
       code: `const classes = computed(() => ({
   active: isActive.value,
   error: hasError.value,
-}))
-// <div :class="classes">`,
+}))`,
       lessonTitle: 'Class & Style Bindings',
     },
     {
@@ -357,13 +352,10 @@ const mood = ref('happy')
 </script>
 
 <template>
-  <!-- Bug 1: string não é objeto condicional -->
   <div :class="isActive ? 'active' : '' + 'card'">
 
-  <!-- Bug 2: fontSize sem px -->
   <p :style="{ fontSize: size, color: 'green' }">Texto</p>
 
-  <!-- Bug 3: array com objeto mal formado -->
   <span :class="['badge', mood === 'happy' : 'green' : 'red']">
     Badge
   </span>
@@ -376,13 +368,10 @@ const mood = ref('happy')
 </script>
 
 <template>
-  <!-- Correto: objeto condicional + classe estática -->
   <div class="card" :class="{ active: isActive }">
 
-  <!-- Correto: fontSize com px -->
   <p :style="{ fontSize: size + 'px', color: 'green' }">Texto</p>
 
-  <!-- Correto: array com ternário para string -->
   <span :class="['badge', mood === 'happy' ? 'green' : 'red']">
     Badge
   </span>

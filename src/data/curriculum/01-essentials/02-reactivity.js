@@ -8,9 +8,9 @@ export default {
 
   theory: [
     {
-      title: 'ref() — a base da reatividade',
-      body: `ref() cria um container reativo para qualquer valor. Quando o valor muda, Vue atualiza o DOM automaticamente.
-Dentro do <script>, acesse e altere com .value. No template, o .value é desembrulhado automaticamente.`,
+      title: 'ref() — a caixinha mágica do Vue',
+      body: `Imagina uma caixinha mágica. Você guarda um valor lá dentro, e o Vue fica de olho nela o tempo todo. Quando você muda o valor com .value, o Vue atualiza o HTML automaticamente. Essa caixinha é a ref().
+No script acesse com .value. No template, o Vue desembrulha automático — sem .value.`,
       code: `<script setup>
 import { ref } from 'vue'
 
@@ -19,7 +19,7 @@ const name = ref('Vue')
 const isVisible = ref(true)
 
 function increment() {
-  count.value++        // .value obrigatório no script
+  count.value++  // .value obrigatório no script
 }
 </script>
 
@@ -31,8 +31,8 @@ function increment() {
     },
     {
       title: 'reactive() — objetos reativos',
-      body: `reactive() torna um objeto inteiro reativo. Acesse as propriedades diretamente, sem .value.
-Limitação importante: só funciona com objetos (não com primitivos como string, number, boolean).`,
+      body: `Para objetos com vários campos, existe o reactive(). Funciona como um objeto JavaScript normal, mas o Vue rastreia todas as mudanças automaticamente — sem precisar de .value em cada acesso.
+A limitação: só funciona com objetos. Não dá pra usar com string, number ou boolean diretamente.`,
       code: `<script setup>
 import { reactive } from 'vue'
 
@@ -42,9 +42,8 @@ const user = reactive({
   level: 3,
 })
 
-// Acesso e mutação diretos — sem .value
 function birthday() {
-  user.age++
+  user.age++  // sem .value — acesso direto
   user.level = Math.floor(user.age / 5)
 }
 </script>
@@ -52,32 +51,34 @@ function birthday() {
 <template>
   <p>{{ user.name }}, {{ user.age }} anos</p>
   <p>Nível {{ user.level }}</p>
-  <button @click="birthday">Fazer aniversário</button>
+  <button @click="birthday">Fazer aniversário 🎂</button>
 </template>`,
     },
     {
-      title: 'ref() vs reactive() — quando usar cada um',
-      body: `ref() funciona com qualquer tipo e pode ser reatribuído. É a escolha padrão do time Vue.
-reactive() é elegante para objetos agrupados, mas perde reatividade se você reatribuir o objeto inteiro.`,
-      code: `import { ref, reactive } from 'vue'
+      title: 'ref() vs reactive() — qual usar?',
+      body: `Use ref() por padrão — o time do Vue recomenda. Funciona com qualquer tipo (string, number, objeto, array) e pode ser reatribuído inteiro com .value.
+Use reactive() quando quiser agrupar campos relacionados num objeto sem .value, como os campos de um formulário.`,
+      code: `<script setup>
+import { ref, reactive } from 'vue'
 
-// ✅ ref() — versátil, funciona com tudo
+// ref funciona com qualquer tipo
 const count = ref(0)
 const user = ref({ name: 'Ana', age: 25 })
 count.value = 100               // reatribuição OK
 user.value = { name: 'João' }  // OK
 
-// ⚠️ reactive() — só objetos, não reatribua
+// reactive é elegante para objetos agrupados
 const form = reactive({ email: '', password: '' })
-form.email = 'test@vue.com'    // OK — mutação
-// form = { email: 'x' }      // ❌ perde reatividade!
+form.email = 'test@vue.com'    // OK — mutação direta
 
-// Regra prática: use ref() por padrão`,
+// ❌ Não faça: reatribuição de reactive quebra a reatividade
+// form = { email: 'novo' }   // perde a referência reativa
+</script>`,
     },
     {
       title: 'Atualização do DOM é assíncrona — nextTick()',
-      body: `Vue faz batching de atualizações: o DOM não muda imediatamente após você alterar o estado.
-Use nextTick() quando precisar acessar o DOM atualizado logo após uma mudança de estado.`,
+      body: `O Vue não atualiza o DOM imediatamente quando você muda um valor — ele junta todas as mudanças e aplica de uma vez (mais eficiente, chamado de batching).
+Se você precisar acessar o DOM logo após uma mudança de estado, use await nextTick() para esperar a atualização.`,
       code: `<script setup>
 import { ref, nextTick } from 'vue'
 
@@ -86,11 +87,13 @@ const countEl = ref(null)
 
 async function increment() {
   count.value++
-  // DOM ainda não atualizou aqui!
+
+  // DOM ainda não foi atualizado aqui
   console.log(countEl.value?.textContent) // valor antigo
 
   await nextTick()
-  // Agora o DOM está atualizado
+
+  // Agora sim — DOM está atualizado
   console.log(countEl.value?.textContent) // valor novo
 }
 </script>
@@ -101,22 +104,17 @@ async function increment() {
 </template>`,
     },
     {
-      title: 'Pitfalls da reatividade — armadilhas comuns',
-      body: `Cuidado com situações que quebram a reatividade: destructuring de reactive e reatribuição de ref.`,
-      code: `import { ref, reactive } from 'vue'
+      title: 'Armadilhas comuns da reatividade',
+      body: `Duas armadilhas que todo dev Vue já caiu: (1) reatribuir a variável de uma ref em vez de usar .value — você perde o link reativo; (2) desestruturar um reactive() — as propriedades desestruturadas perdem a reatividade.`,
+      code: `<script setup>
+import { ref, reactive } from 'vue'
+
+const msg = ref('Olá')
+msg.value = 'Oi'    // ✅ sempre use .value para mudar
 
 const state = reactive({ count: 0, name: 'Vue' })
-
-// ❌ Desestruturação quebra reatividade do reactive()
-const { count } = state  // count não é mais reativo!
-
-// ✅ Use ref ou toRef para desestruturar com reatividade
-import { toRef } from 'vue'
-const count = toRef(state, 'count')  // continua reativo
-
-// ✅ ref() pode ser reatribuído sem perder reatividade
-const msg = ref('olá')
-msg.value = 'novo valor'  // OK — ainda reativo`,
+state.count++       // ✅ acesse direto, nunca desestruture
+</script>`,
     },
   ],
 
@@ -136,8 +134,7 @@ count.value++`,
       code: `// script
 count.value++
 
-// template
-// <p>{{ count }}</p>`,
+// template: {{ count }}  ← sem .value`,
       lessonTitle: 'Reactivity Fundamentals',
     },
     {
@@ -153,20 +150,19 @@ const state = reactive({ x: 0 }) // objeto`,
       front: 'O que acontece se reatribuir a variável de uma ref?',
       back: 'Quebra o link reativo. Sempre mute pelo `.value`, nunca reatribua a variável.',
       code: `const msg = ref('Olá')
-
-// ❌ quebra reatividade
-msg = ref('Oi')
-
-// ✅ correto
-msg.value = 'Oi'`,
+// ❌ msg = ref('Oi')
+msg.value = 'Oi' // ✅`,
       lessonTitle: 'Reactivity Fundamentals',
     },
     {
       id: 'react-fc-5',
-      front: 'Como reactive() reage a mudanças aninhadas?',
-      back: 'Mudanças em propriedades aninhadas **também são reativas** — Vue rastreia toda a árvore do objeto.',
-      code: `const user = reactive({ address: { city: 'SP' } })
-user.address.city = 'RJ' // ✅ Vue detecta`,
+      front: 'Por que usar `nextTick()` após mudar um estado?',
+      back: 'O Vue atualiza o DOM de forma assíncrona (batching). `await nextTick()` garante que o DOM já foi atualizado antes de você acessá-lo.',
+      code: `count.value++
+// DOM ainda antigo aqui
+
+await nextTick()
+// DOM atualizado agora ✅`,
       lessonTitle: 'Reactivity Fundamentals',
     },
   ],
@@ -288,111 +284,115 @@ function reset() {
     {
       id: 'react-ch-4',
       type: 'fill-blank',
-      title: 'Preferências com reactive()',
-      description: 'Complete o objeto reactive e os bindings do template para as preferências do usuário.',
+      title: 'Placar com reactive()',
+      description: 'Complete usando reactive() para criar o placar. Acesse as propriedades direto, sem .value.',
       xpReward: 50,
       template: `<script setup>
 import { ___ } from 'vue'
 
-const prefs = ___({
-  darkMode: false,
-  fontSize: 16,
-  language: 'pt-BR',
+const placar = ___({
+  jogador: 'Ana',
+  pontos: 0,
 })
+
+function marcar() {
+  placar.___ += 10
+}
+
+function reset() {
+  placar.___ = 0
+}
 </script>
 
 <template>
-  <div>
-    <button @click="prefs.darkMode = !prefs.darkMode">
-      {{ prefs.darkMode ? '🌙 Dark' : '☀️ Light' }}
-    </button>
-
-    <input
-      type="range"
-      min="12"
-      max="24"
-      ___="prefs.fontSize"
-    />
-    <span>{{ prefs.fontSize }}px</span>
-
-    <pre>{{ prefs }}</pre>
-  </div>
+  <p>{{ placar.jogador }}: {{ placar.pontos }} pts</p>
+  <button @click="marcar">+10</button>
+  <button @click="reset">Reset</button>
 </template>`,
-      blanks: ['reactive', 'reactive', 'v-model.number'],
+      blanks: ['reactive', 'reactive', 'pontos', 'pontos'],
       solution: `<script setup>
 import { reactive } from 'vue'
 
-const prefs = reactive({
-  darkMode: false,
-  fontSize: 16,
-  language: 'pt-BR',
+const placar = reactive({
+  jogador: 'Ana',
+  pontos: 0,
 })
+
+function marcar() {
+  placar.pontos += 10
+}
+
+function reset() {
+  placar.pontos = 0
+}
 </script>
 
 <template>
-  <div>
-    <button @click="prefs.darkMode = !prefs.darkMode">
-      {{ prefs.darkMode ? '🌙 Dark' : '☀️ Light' }}
-    </button>
-
-    <input
-      type="range"
-      min="12"
-      max="24"
-      v-model.number="prefs.fontSize"
-    />
-    <span>{{ prefs.fontSize }}px</span>
-
-    <pre>{{ prefs }}</pre>
-  </div>
+  <p>{{ placar.jogador }}: {{ placar.pontos }} pts</p>
+  <button @click="marcar">+10</button>
+  <button @click="reset">Reset</button>
 </template>`,
-      hint: 'reactive() aceita um objeto. Acesse as props diretamente: prefs.darkMode (sem .value).',
+      hint: 'reactive() para objetos. Acesse as props direto: placar.pontos (sem .value).',
     },
     {
       id: 'react-ch-5',
       type: 'fix-bug',
-      title: 'Bug no .value',
-      description: 'O código abaixo tem um bug sutil — o estado muda mas o template não atualiza. Encontre e corrija.',
+      title: 'Bugs no .value',
+      description: 'O código tem 3 erros. Encontre e corrija.',
       xpReward: 30,
       buggyCode: `<script setup>
 import { ref } from 'vue'
 
-const message = ref('Olá Vue!')
+const count = ref(0)
+const isActive = ref(false)
 
-function shout() {
-  message = message.toUpperCase()
+function increment() {
+  count = count.value + 1
+}
+
+function toggle() {
+  isActive.value = !isActive
 }
 
 function reset() {
-  message = ref('Olá Vue!')
+  count.value = 0
+  isActive = false
 }
 </script>
 
 <template>
-  <p>{{ message }}</p>
-  <button @click="shout">GRITAR</button>
+  <p>{{ count }} — {{ isActive ? 'ativo' : 'inativo' }}</p>
+  <button @click="increment">+1</button>
+  <button @click="toggle">Toggle</button>
   <button @click="reset">Reset</button>
 </template>`,
       solution: `<script setup>
 import { ref } from 'vue'
 
-const message = ref('Olá Vue!')
+const count = ref(0)
+const isActive = ref(false)
 
-function shout() {
-  message.value = message.value.toUpperCase()
+function increment() {
+  count.value = count.value + 1
+}
+
+function toggle() {
+  isActive.value = !isActive.value
 }
 
 function reset() {
-  message.value = 'Olá Vue!'
+  count.value = 0
+  isActive.value = false
 }
 </script>
 
 <template>
-  <p>{{ message }}</p>
-  <button @click="shout">GRITAR</button>
+  <p>{{ count }} — {{ isActive ? 'ativo' : 'inativo' }}</p>
+  <button @click="increment">+1</button>
+  <button @click="toggle">Toggle</button>
   <button @click="reset">Reset</button>
 </template>`,
-      explanation: 'Dentro do script, refs precisam de .value para leitura E escrita. Reatribuir a variável (message = ...) quebra o link reativo.',
+      explanation: '1) count = ... reatribui a variável — use count.value. 2) !isActive lê a ref em si — use !isActive.value. 3) isActive = false reatribui — use isActive.value = false.',
     },
   ],
 }

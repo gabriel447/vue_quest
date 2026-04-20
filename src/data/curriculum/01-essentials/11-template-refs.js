@@ -8,82 +8,102 @@ export default {
 
   theory: [
     {
-      title: 'Acessando o DOM diretamente com ref',
-      body: `Vue abstrai o DOM — você raramente precisa acessá-lo diretamente. Mas às vezes é necessário: dar foco, medir dimensões, integrar com bibliotecas externas.
-Declare uma ref(null) com o mesmo nome do atributo ref no template.`,
+      title: 'Acessando o DOM diretamente',
+      body: `Em Vue, você raramente precisa acessar o DOM diretamente — as diretivas resolvem quase tudo. Mas às vezes é necessário: dar foco a um input, medir dimensões, ou integrar com uma biblioteca JavaScript externa.
+Para isso, declare uma ref(null) e use o atributo ref= no template com o mesmo nome.`,
       code: `<script setup>
 import { ref, onMounted } from 'vue'
 
-// Deve ter o mesmo nome do atributo ref no template
-const inputEl = ref(null)
+const inputEl = ref(null)  // começa null — preenchido ao montar
 const divEl = ref(null)
 
 onMounted(() => {
-  // ✅ Disponível apenas após onMounted — o DOM existe aqui
+  // Só acesse aqui — o elemento existe após a montagem
   inputEl.value.focus()
 
   const rect = divEl.value.getBoundingClientRect()
   console.log('Largura:', rect.width)
   console.log('Altura:', rect.height)
 })
-
-// ❌ Null antes de onMounted — o DOM não existe ainda
-// console.log(inputEl.value) // null
 </script>
 
 <template>
-  <input ref="inputEl" placeholder="Auto-foco!" />
+  <!-- ref= conecta o elemento à variável -->
+  <input ref="inputEl" placeholder="Auto-foco ao abrir! 🎯" />
   <div ref="divEl">Meu conteúdo</div>
 </template>`,
     },
     {
-      title: 'Template refs e o ciclo de vida',
-      body: `A ref do template é null até o componente ser montado. Respeite o ciclo de vida ao acessá-la.
-Use computed ou watch com cuidado — a ref pode ser null se o elemento for condicional.`,
+      title: 'useTemplateRef() — Vue 3.5+',
+      body: `No Vue 3.5+, a forma recomendada é useTemplateRef(). Recebe o nome do atributo ref= como argumento. É mais explícita que a abordagem antiga e evita conflito com outras refs.
+Se você usar Vue < 3.5, declare uma ref(null) com o mesmo nome da string do atributo ref no template.`,
       code: `<script setup>
-import { ref, watch, onMounted } from 'vue'
+import { useTemplateRef, onMounted } from 'vue'
 
-const textEl = ref(null)
-const isVisible = ref(true)
-
-// ✅ Verifique se o elemento existe antes de usar
-watch(isVisible, (visible) => {
-  if (visible && textEl.value) {
-    textEl.value.classList.add('animate')
-  }
-})
+// Vue 3.5+: useTemplateRef — forma recomendada
+const inputEl = useTemplateRef('my-input')
 
 onMounted(() => {
-  // ✅ Aqui é garantido que textEl.value existe
-  console.log('Elemento:', textEl.value)
+  inputEl.value.focus()
 })
 </script>
 
 <template>
-  <!-- ref é null quando v-if é false -->
-  <p v-if="isVisible" ref="textEl">
-    Texto condicional
-  </p>
+  <!-- O string no useTemplateRef deve bater com o atributo ref= -->
+  <input ref="my-input" placeholder="Focado automaticamente!" />
+</template>
+
+<!-- Vue < 3.5: use ref(null) com mesmo nome -->
+<!-- const inputEl = ref(null) + <input ref="inputEl" /> -->`,
+    },
+    {
+      title: 'Ref em componente filho — defineExpose()',
+      body: `Quando você usa ref= em um componente filho com <script setup>, o componente é privado por padrão — você não acessa nada de fora. Para expor métodos ou dados, o filho usa defineExpose().
+Prefira props e emit para comunicação normal. Reserve template refs para controle direto quando necessário.`,
+      code: `<!-- ComponenteFilho.vue -->
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+
+function reset() {
+  count.value = 0
+}
+
+// Expõe só o que o pai pode acessar
+defineExpose({ reset, count })
+</script>
+
+<!-- ComponentePai.vue -->
+<script setup>
+import { ref, onMounted } from 'vue'
+import ComponenteFilho from './ComponenteFilho.vue'
+
+const filho = ref(null)
+
+onMounted(() => {
+  filho.value.reset()        // ✅ método exposto
+  console.log(filho.value.count)  // ✅ dado exposto
+})
+</script>
+
+<template>
+  <ComponenteFilho ref="filho" />
 </template>`,
     },
     {
-      title: 'refs em v-for — array de elementos',
-      body: `Quando ref é usado dentro de v-for, a ref resultante é um array de todos os elementos renderizados.
-O array é preenchido após a montagem.`,
+      title: 'Refs dentro de v-for',
+      body: `Quando você usa ref= dentro de um v-for, você recebe um array com todos os elementos criados (na ordem em que aparecem no DOM, não necessariamente a do array original).`,
       code: `<script setup>
 import { ref, onMounted } from 'vue'
 
-const itemRefs = ref([])
-const items = ['Vue', 'React', 'Angular', 'Svelte']
+const items = ref(['Vue', 'React', 'Svelte'])
+const itemEls = ref([])  // array de elementos DOM
 
 onMounted(() => {
-  console.log(itemRefs.value)         // array de elementos <li>
-  console.log(itemRefs.value.length)  // 4
-
-  // Pode manipular cada elemento
-  itemRefs.value.forEach((el, i) => {
-    el.style.animationDelay = \`\${i * 0.1}s\`
-  })
+  // itemEls.value é array de todos os <li> criados
+  console.log('Elementos:', itemEls.value.length)
+  itemEls.value[0].style.fontWeight = 'bold'
 })
 </script>
 
@@ -92,7 +112,7 @@ onMounted(() => {
     <li
       v-for="item in items"
       :key="item"
-      ref="itemRefs"
+      ref="itemEls"
     >
       {{ item }}
     </li>
@@ -100,147 +120,98 @@ onMounted(() => {
 </template>`,
     },
     {
-      title: 'Acessando componentes filhos com ref',
-      body: `ref também funciona em componentes. Com <script setup>, o filho deve usar defineExpose() para tornar suas propriedades acessíveis ao pai.
-Sem defineExpose(), nada do filho é acessível.`,
-      code: `<!-- Filho.vue -->
-<script setup>
+      title: 'Ref como função',
+      body: `Em vez de um string, você pode passar uma função para o atributo ref. Ela recebe o elemento (ou null quando desmontado) e é chamada toda vez que o elemento é montado ou atualizado.
+Útil para lógica mais complexa ou quando não quer declarar uma variável separada.`,
+      code: `<script setup>
 import { ref } from 'vue'
 
-const count = ref(0)
 const inputEl = ref(null)
 
-function increment() { count.value++ }
-function focus() { inputEl.value?.focus() }
-
-// Expõe explicitamente o que o pai pode acessar
-defineExpose({ count, increment, focus })
-</script>
-
-<template>
-  <input ref="inputEl" v-model="count" />
-</template>
-
-<!-- Pai.vue -->
-<script setup>
-import Filho from './Filho.vue'
-const filhoRef = ref(null)
-
-function chamarFilho() {
-  filhoRef.value.increment()    // ✅ exposto
-  filhoRef.value.focus()        // ✅ exposto
-  // filhoRef.value.inputEl   // ❌ não exposto
+// Função ref: recebe o elemento ao montar, null ao desmontar
+function setInputRef(el) {
+  inputEl.value = el
+  if (el) el.focus()  // foca imediatamente ao montar
 }
 </script>
 
 <template>
-  <Filho ref="filhoRef" />
-  <button @click="chamarFilho">Interagir com filho</button>
-</template>`,
-    },
-    {
-      title: 'Integrando bibliotecas externas com refs',
-      body: `O uso mais comum de template refs: inicializar bibliotecas JavaScript externas que precisam de um elemento DOM real.`,
-      code: `<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-// Exemplo conceitual — qualquer lib que precise do DOM
-
-const chartEl = ref(null)
-const mapEl = ref(null)
-let chartInstance = null
-
-onMounted(() => {
-  // Inicializa biblioteca com o elemento DOM
-  chartInstance = new Chart(chartEl.value, {
-    type: 'line',
-    data: chartData,
-  })
-
-  // Leaflet, Three.js, Flatpickr, etc. — mesmo padrão
-  const map = L.map(mapEl.value).setView([0, 0], 13)
-})
-
-onUnmounted(() => {
-  // ✅ Destrua instâncias para evitar memory leaks
-  chartInstance?.destroy()
-})
-</script>
-
-<template>
-  <canvas ref="chartEl"></canvas>
-  <div ref="mapEl" style="height: 400px"></div>
+  <!-- Função em vez de string -->
+  <input :ref="setInputRef" placeholder="Focado!" />
 </template>`,
     },
   ],
 
   flashcards: [
     {
-      id: 'tr-fc-1',
-      front: 'Como acessar um elemento DOM diretamente?',
-      back: 'Declare `ref(null)` com o mesmo nome do atributo `ref` no template. O elemento fica disponível após `onMounted`.',
-      code: `const inputEl = ref(null)
-onMounted(() => inputEl.value.focus())
-// <input ref="inputEl" />`,
+      id: 'ref-fc-1',
+      front: 'Como acessar um elemento DOM diretamente em Vue?',
+      back: 'Declare `const el = ref(null)` e adicione `ref="el"` no template. O elemento estará disponível em `el.value` após `onMounted`.',
+      code: `const el = ref(null)
+onMounted(() => el.value.focus())
+// <input ref="el" />`,
       lessonTitle: 'Template Refs',
     },
     {
-      id: 'tr-fc-2',
-      front: 'Por que a template ref é null antes de onMounted?',
-      back: 'O DOM só existe após a montagem. Antes disso, `el.value` é `null`.',
-      code: `// setup      → el.value === null
-// onMounted  → el.value === <elemento DOM>`,
+      id: 'ref-fc-2',
+      front: 'Quando a template ref está disponível?',
+      back: 'Só após `onMounted`. Antes disso, o valor é `null` — acessar antes causa erro.',
+      code: `const el = ref(null)
+// setup: el.value === null ❌
+onMounted(() => el.value.focus()) // ✅`,
       lessonTitle: 'Template Refs',
     },
     {
-      id: 'tr-fc-3',
-      front: 'O que acontece com ref dentro de v-for?',
-      back: 'A ref vira um **array** com todos os elementos renderizados.',
-      code: `const itemRefs = ref([])
-// <li v-for="item in items" ref="itemRefs">
-// itemRefs.value → array de <li>`,
-      lessonTitle: 'Template Refs',
-    },
-    {
-      id: 'tr-fc-4',
-      front: 'Como expor métodos de um filho com script setup?',
-      back: 'Use `defineExpose()`. Sem ele, o pai não acessa nada do filho por ref.',
-      code: `// Filho.vue
-defineExpose({ count, increment })
+      id: 'ref-fc-3',
+      front: 'Por que um componente filho com script setup é "privado"?',
+      back: 'Por padrão, nada é exposto ao pai. Use `defineExpose({ prop, method })` para tornar acessível.',
+      code: `// filho
+defineExpose({ reset, count })
 
-// Pai: filhoRef.value.increment()`,
+// pai
+filho.value.reset() // ✅`,
       lessonTitle: 'Template Refs',
     },
     {
-      id: 'tr-fc-5',
-      front: 'Como integrar uma biblioteca JS externa com Vue?',
-      back: 'Inicialize em `onMounted` (DOM disponível) e destrua em `onUnmounted` (evitar memory leak).',
-      code: `onMounted(() => { instance = new Lib(el.value) })
-onUnmounted(() => { instance?.destroy() })`,
+      id: 'ref-fc-4',
+      front: 'O que acontece com ref= dentro de v-for?',
+      back: 'Você recebe um **array** com todos os elementos criados pelo v-for.',
+      code: `const items = ref([])
+// <li v-for="..." ref="items">
+// items.value = [li, li, li, ...]`,
+      lessonTitle: 'Template Refs',
+    },
+    {
+      id: 'ref-fc-5',
+      front: 'Qual é a forma recomendada de template ref no Vue 3.5+?',
+      back: '`useTemplateRef("nome")` — mais explícita que declarar `ref(null)` com mesmo nome do atributo.',
+      code: `const el = useTemplateRef('my-input')
+// <input ref="my-input" />`,
       lessonTitle: 'Template Refs',
     },
   ],
 
   challenges: [
     {
-      id: 'tr-ch-1',
+      id: 'ref-ch-1',
       type: 'fill-blank',
       title: 'Auto-foco no input',
-      description: 'Complete o código para dar foco automático ao input assim que o componente for montado.',
+      description: 'Complete o código para dar foco automático ao input quando o componente é montado.',
       xpReward: 25,
       template: `<script setup>
-import { ref, onMounted } from 'vue'
+import { ref, ___ } from 'vue'
 
-const ___ = ref(null)
+const inputEl = ___(null)
 
-onMounted(() => {
+___(()=> {
   inputEl.value.___()
 })
 </script>
 
 <template>
-  <input ref="inputEl" placeholder="Foco automático aqui!" />
+  <input ___="inputEl" placeholder="Estou focado!" />
 </template>`,
-      blanks: ['inputEl', 'focus'],
+      blanks: ['onMounted', 'ref', 'onMounted', 'focus', 'ref'],
       solution: `<script setup>
 import { ref, onMounted } from 'vue'
 
@@ -252,233 +223,193 @@ onMounted(() => {
 </script>
 
 <template>
-  <input ref="inputEl" placeholder="Foco automático aqui!" />
+  <input ref="inputEl" placeholder="Estou focado!" />
 </template>`,
-      hint: 'Declare ref(null) com o mesmo nome do atributo ref. Use .focus() em onMounted.',
+      hint: 'ref(null) para declarar, onMounted para acessar, .focus() para focar.',
     },
     {
-      id: 'tr-ch-2',
+      id: 'ref-ch-2',
       type: 'fill-blank',
-      title: 'Medidor de dimensões',
-      description: 'Complete: leia as dimensões via getBoundingClientRect() e adicione/remova o listener de resize.',
+      title: 'Medir elemento com ref',
+      description: 'Complete para medir a largura e altura do card após a montagem.',
+      xpReward: 30,
+      template: `<script setup>
+import { ref, onMounted } from 'vue'
+
+const cardEl = ___(null)
+const dimensions = ref({ width: 0, height: 0 })
+
+onMounted(() => {
+  const rect = cardEl.___.getBoundingClientRect()
+  dimensions.value.width = Math.round(rect.___)
+  dimensions.value.height = Math.round(rect.___)
+})
+</script>
+
+<template>
+  <div ref="___" class="card" style="padding: 2rem">
+    <p>Largura: {{ dimensions.width }}px</p>
+    <p>Altura: {{ dimensions.height }}px</p>
+  </div>
+</template>`,
+      blanks: ['ref', 'value', 'width', 'height', 'cardEl'],
+      solution: `<script setup>
+import { ref, onMounted } from 'vue'
+
+const cardEl = ref(null)
+const dimensions = ref({ width: 0, height: 0 })
+
+onMounted(() => {
+  const rect = cardEl.value.getBoundingClientRect()
+  dimensions.value.width = Math.round(rect.width)
+  dimensions.value.height = Math.round(rect.height)
+})
+</script>
+
+<template>
+  <div ref="cardEl" class="card" style="padding: 2rem">
+    <p>Largura: {{ dimensions.width }}px</p>
+    <p>Altura: {{ dimensions.height }}px</p>
+  </div>
+</template>`,
+      hint: 'getBoundingClientRect() retorna um objeto com width, height, top, left etc.',
+    },
+    {
+      id: 'ref-ch-3',
+      type: 'fill-blank',
+      title: 'Foco condicional',
+      description: 'Complete para focar o input de busca quando o usuário abre o modal.',
       xpReward: 45,
       template: `<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick } from 'vue'
 
-const boxEl = ___(null)
-const dimensions = ref(null)
+const isOpen = ref(false)
+const searchEl = ref(null)
 
-function measure() {
-  if (!boxEl.value) return
-  const rect = boxEl.value.___()
-  dimensions.value = {
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
-  }
+async function openModal() {
+  isOpen.value = true
+  await ___()
+  searchEl.___?.focus()
 }
-
-onMounted(() => {
-  measure()
-  window.addEventListener('resize', measure)
-})
-
-onUnmounted(() => {
-  window.___(resize', measure)
-})
 </script>
 
 <template>
-  <div ref="boxEl" style="padding: 2rem; background: #22212c; border-radius: 8px">
-    Redimensione a janela para ver as dimensões mudarem!
+  <button @click="openModal">🔍 Abrir busca</button>
+
+  <div v-if="isOpen" class="modal">
+    <input ref="___" placeholder="Buscar..." />
+    <button @click="isOpen = false">✕ Fechar</button>
   </div>
-  <button @click="measure">📐 Medir</button>
-  <p v-if="dimensions">{{ dimensions.width }}px × {{ dimensions.height }}px</p>
 </template>`,
-      blanks: ['ref', 'getBoundingClientRect', 'removeEventListener(\''],
+      blanks: ['nextTick', 'value', 'searchEl'],
       solution: `<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick } from 'vue'
 
-const boxEl = ref(null)
-const dimensions = ref(null)
+const isOpen = ref(false)
+const searchEl = ref(null)
 
-function measure() {
-  if (!boxEl.value) return
-  const rect = boxEl.value.getBoundingClientRect()
-  dimensions.value = {
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
-  }
+async function openModal() {
+  isOpen.value = true
+  await nextTick()
+  searchEl.value?.focus()
 }
-
-onMounted(() => {
-  measure()
-  window.addEventListener('resize', measure)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', measure)
-})
 </script>
 
 <template>
-  <div ref="boxEl" style="padding: 2rem; background: #22212c; border-radius: 8px">
-    Redimensione a janela para ver as dimensões mudarem!
+  <button @click="openModal">🔍 Abrir busca</button>
+
+  <div v-if="isOpen" class="modal">
+    <input ref="searchEl" placeholder="Buscar..." />
+    <button @click="isOpen = false">✕ Fechar</button>
   </div>
-  <button @click="measure">📐 Medir</button>
-  <p v-if="dimensions">{{ dimensions.width }}px × {{ dimensions.height }}px</p>
 </template>`,
-      hint: 'ref(null) + ref="boxEl" conecta ao elemento. getBoundingClientRect() lê dimensões. removeEventListener limpa o resize.',
+      hint: 'nextTick() espera o DOM atualizar após v-if mudar. .value? usa optional chaining para evitar erro se null.',
     },
     {
-      id: 'tr-ch-3',
+      id: 'ref-ch-4',
       type: 'fill-blank',
-      title: 'Textarea com contador de caracteres',
-      description: 'Complete: contador de chars com computed, cor vermelha perto do limite, e scroll até o fim.',
-      xpReward: 40,
+      title: 'Refs dentro de v-for',
+      description: 'Complete para coletar os elementos <li> criados pelo v-for e deixar o primeiro em negrito ao montar.',
+      xpReward: 30,
       template: `<script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 
-const textareaEl = ref(null)
-const content = ref('')
+const items = ['Vue', 'React', 'Svelte']
+const itemEls = ___([] )
 
-const charCount = ___(() => content.value.___)
-
-const isNearLimit = computed(() => charCount.value > 180)
-
-function scrollToEnd() {
-  if (textareaEl.value) {
-    textareaEl.value.scrollTop = textareaEl.value.scrollHeight
-  }
-}
+onMounted(() => {
+  itemEls.___[0].style.fontWeight = 'bold'
+})
 </script>
 
 <template>
-  <textarea
-    ref="textareaEl"
-    v-model="content"
-    maxlength="200"
-    rows="6"
-    placeholder="Digite até 200 caracteres..."
-    style="width: 100%"
-  />
-
-  <div style="display: flex; justify-content: space-between">
-    <span :style="{ color: isNearLimit ? '#ef4444' : '#7970a9' }">
-      {{ charCount }}/200
-    </span>
-    <button @click="scrollToEnd">⬇️ Ir para o fim</button>
-  </div>
+  <ul>
+    <li v-for="item in items" :key="item" ___="itemEls">
+      {{ item }}
+    </li>
+  </ul>
 </template>`,
-      blanks: ['computed', 'length'],
+      blanks: ['ref', 'value', 'ref'],
       solution: `<script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 
-const textareaEl = ref(null)
-const content = ref('')
+const items = ['Vue', 'React', 'Svelte']
+const itemEls = ref([])
 
-const charCount = computed(() => content.value.length)
-
-const isNearLimit = computed(() => charCount.value > 180)
-
-function scrollToEnd() {
-  if (textareaEl.value) {
-    textareaEl.value.scrollTop = textareaEl.value.scrollHeight
-  }
-}
+onMounted(() => {
+  itemEls.value[0].style.fontWeight = 'bold'
+})
 </script>
 
 <template>
-  <textarea
-    ref="textareaEl"
-    v-model="content"
-    maxlength="200"
-    rows="6"
-    placeholder="Digite até 200 caracteres..."
-    style="width: 100%"
-  />
-
-  <div style="display: flex; justify-content: space-between">
-    <span :style="{ color: isNearLimit ? '#ef4444' : '#7970a9' }">
-      {{ charCount }}/200
-    </span>
-    <button @click="scrollToEnd">⬇️ Ir para o fim</button>
-  </div>
+  <ul>
+    <li v-for="item in items" :key="item" ref="itemEls">
+      {{ item }}
+    </li>
+  </ul>
 </template>`,
-      hint: 'computed retorna content.value.length. ref="textareaEl" conecta ao elemento DOM real.',
+      hint: 'Quando ref= está dentro de v-for, o resultado em .value é um array de elementos DOM.',
     },
     {
-      id: 'tr-ch-4',
+      id: 'ref-ch-5',
       type: 'fix-bug',
-      title: 'Filho não responde ao pai',
-      description: 'O pai tenta chamar o método `reset()` do filho via ref, mas recebe erro "reset is not a function". Corrija o filho.',
+      title: 'Bugs com template ref',
+      description: 'O componente tem 3 erros relacionados ao uso de template refs. Encontre e corrija.',
       xpReward: 30,
-      buggyCode: `<!-- Filho.vue — script setup não expõe nada por padrão! -->
-<script setup>
+      buggyCode: `<script setup>
 import { ref } from 'vue'
 
-const count = ref(0)
+const inputEl = ref(null)
+inputEl.value.focus()
 
-function reset() {
-  count.value = 0
+function clear() {
+  inputEl.focus()
 }
-
-function increment() {
-  count.value++
-}
-// ← Nenhum defineExpose aqui
 </script>
 
 <template>
-  <p>Count: {{ count }}</p>
-  <button @click="increment">+1</button>
-</template>
-
-<!-- Pai.vue -->
-<script setup>
-import { ref } from 'vue'
-import Filho from './Filho.vue'
-const filhoRef = ref(null)
-</script>
-
-<template>
-  <Filho ref="filhoRef" />
-  <button @click="filhoRef.reset()">Reset do pai</button>
+  <input ref="input" placeholder="Texto" />
+  <button @click="clear">Limpar</button>
 </template>`,
-      solution: `<!-- Filho.vue — com defineExpose -->
-<script setup>
-import { ref } from 'vue'
+      solution: `<script setup>
+import { ref, onMounted } from 'vue'
 
-const count = ref(0)
+const inputEl = ref(null)
 
-function reset() {
-  count.value = 0
+onMounted(() => {
+  inputEl.value.focus()
+})
+
+function clear() {
+  inputEl.value.focus()
 }
-
-function increment() {
-  count.value++
-}
-
-// ✅ Expõe o que o pai precisa acessar
-defineExpose({ count, reset, increment })
 </script>
 
 <template>
-  <p>Count: {{ count }}</p>
-  <button @click="increment">+1</button>
-</template>
-
-<!-- Pai.vue — sem mudanças necessárias -->
-<script setup>
-import { ref } from 'vue'
-import Filho from './Filho.vue'
-const filhoRef = ref(null)
-</script>
-
-<template>
-  <Filho ref="filhoRef" />
-  <button @click="filhoRef.reset()">Reset do pai</button>
+  <input ref="inputEl" placeholder="Texto" />
+  <button @click="clear">Limpar</button>
 </template>`,
-      explanation: 'Com <script setup>, o componente é fechado por padrão — o pai não acessa nada sem defineExpose(). Use defineExpose({ método }) para expor o que o pai precisa.',
+      explanation: '1) inputEl.value é null até montar — acesse dentro de onMounted. 2) inputEl.focus() está faltando .value. 3) ref="input" não bate com a variável inputEl — os nomes devem ser iguais.',
     },
   ],
 }

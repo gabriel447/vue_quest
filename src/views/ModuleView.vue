@@ -125,6 +125,7 @@ function goToLesson(lesson) {
         <button
           class="btn btn-primary mt-2"
           :disabled="!mod.bossBattle.requirements.every(r => progress.isLessonComplete(r))"
+          @click="router.push(`/boss/${mod.id}`)"
         >
           Iniciar Boss Battle 👹
         </button>

@@ -9,8 +9,8 @@ export default {
   theory: [
     {
       title: 'v-on / @ — escutando eventos',
-      body: `Use v-on:evento ou a forma curta @evento para escutar eventos do DOM.
-O valor pode ser uma expressão inline, o nome de um método, ou uma chamada de método.`,
+      body: `@evento é a forma de reagir às ações do usuário: clique, tecla pressionada, movimento do mouse. É a forma curta de v-on:evento.
+O valor pode ser uma expressão inline simples ou o nome de um método — Vue detecta automaticamente.`,
       code: `<script setup>
 import { ref } from 'vue'
 const count = ref(0)
@@ -22,32 +22,27 @@ function increment() {
 </script>
 
 <template>
-  <!-- Expressão inline -->
+  <!-- Expressão inline simples -->
   <button @click="count++">+1 (inline)</button>
 
-  <!-- Referência a método — Vue passa o Event automaticamente -->
+  <!-- Referência ao método — Vue passa o Event automaticamente -->
   <button @click="increment">+1 (método)</button>
 
   <!-- Chamada com argumento -->
   <button @click="color = 'red'">Vermelho</button>
-
-  <!-- Método com argumento explícito -->
-  <button @click="console.log('clicado!', count.value)">Log</button>
 </template>`,
     },
     {
       title: 'O objeto Event — acesso automático e $event',
-      body: `Quando o handler é apenas o nome do método (sem parênteses), Vue passa o objeto Event automaticamente.
-Para passar argumentos E acessar o event, use $event ou uma arrow function.`,
+      body: `Quando o handler é só o nome do método (sem parênteses), o Vue entrega o objeto Event automaticamente como primeiro argumento.
+Se precisar passar argumentos E o event juntos, use $event na chamada ou uma arrow function.`,
       code: `<script setup>
-// Vue passa o Event automaticamente aqui
 function handleClick(event) {
-  console.log(event.type)          // "click"
-  console.log(event.target)        // elemento clicado
-  console.log(event.clientX)       // posição X do mouse
+  console.log(event.type)      // "click"
+  console.log(event.target)    // elemento clicado
+  console.log(event.clientX)   // posição X do mouse
 }
 
-// Para argumentos + event: use $event ou arrow
 function greet(name, event) {
   console.log(\`Olá \${name}!\`)
   console.log(event.target.textContent)
@@ -55,10 +50,10 @@ function greet(name, event) {
 </script>
 
 <template>
-  <!-- Event automático -->
+  <!-- Event automático — método sem parênteses -->
   <button @click="handleClick">Clique</button>
 
-  <!-- $event explícito -->
+  <!-- $event explícito — quando você tem outros argumentos -->
   <button @click="greet('Vue', $event)">Olá Vue</button>
 
   <!-- Arrow function — mesma coisa, mais flexível -->
@@ -67,12 +62,12 @@ function greet(name, event) {
     },
     {
       title: 'Modificadores de evento — sem código extra',
-      body: `Vue oferece modificadores que tratam casos comuns sem precisar de código dentro do método.
-Isso mantém o método focado na lógica, não em detalhes do DOM.`,
-      code: `<!-- .prevent → event.preventDefault() -->
+      body: `Modificadores são "poderes extras" para seus handlers. .prevent evita o comportamento padrão (form não recarrega). .stop evita que o evento suba para elementos pai.
+Sem eles, você teria que escrever event.preventDefault() ou event.stopPropagation() manualmente dentro do método — com modificadores o método fica focado só na lógica.`,
+      code: `<!-- .prevent → event.preventDefault() — form não recarrega -->
 <form @submit.prevent="onSubmit">
 
-<!-- .stop → event.stopPropagation() -->
+<!-- .stop → event.stopPropagation() — clique não sobe ao pai -->
 <div @click="parentClick">
   <button @click.stop="childClick">Não propaga</button>
 </div>
@@ -82,28 +77,23 @@ Isso mantém o método focado na lógica, não em detalhes do DOM.`,
   <span>Clicar aqui não dispara</span>
 </div>
 
-<!-- .once → dispara apenas uma vez -->
-<button @click.once="subscribe">Assinar (1x)</button>
-
-<!-- .capture → usa fase de captura ao invés de bubbling -->
-<div @click.capture="onCapture">...</div>
+<!-- .once → dispara apenas uma vez, depois remove o listener -->
+<button @click.once="subscribe">Assinar (só 1x)</button>
 
 <!-- Encadeamento de modificadores -->
 <a @click.stop.prevent="navigate">Link seguro</a>`,
     },
     {
       title: 'Modificadores de tecla',
-      body: `Para eventos de teclado, use modificadores para filtrar qual tecla dispara o handler.
-Vue tem atalhos para as teclas mais comuns.`,
-      code: `<!-- Teclas comuns: enter, tab, delete, esc, space, up, down, left, right -->
-
-<!-- Enter envia -->
+      body: `Para eventos de teclado, use modificadores para filtrar qual tecla dispara o handler. Sem eles, o handler dispararia para qualquer tecla.
+Vue tem atalhos para as teclas mais comuns: enter, esc, tab, space, up, down, left, right.`,
+      code: `<!-- Enter envia o formulário -->
 <input @keyup.enter="submit" placeholder="Enter = enviar" />
 
-<!-- Esc cancela -->
+<!-- Esc cancela / fecha -->
 <input @keyup.esc="cancel" placeholder="Esc = cancelar" />
 
-<!-- Setas de navegação -->
+<!-- Setas para navegação -->
 <div @keydown.up="moveUp" @keydown.down="moveDown" tabindex="0">
 
 <!-- Combinações com modificadores de sistema -->
@@ -112,9 +102,8 @@ Vue tem atalhos para as teclas mais comuns.`,
 <button @click.ctrl="selectAll">Ctrl+Click</button>`,
     },
     {
-      title: 'Múltiplos handlers e handlers inline complexos',
-      body: `Você pode passar múltiplos handlers para um evento usando vírgula.
-Handlers inline podem ser funções arrow complexas se necessário.`,
+      title: 'Múltiplos handlers e handlers complexos',
+      body: `Você pode passar múltiplos handlers para o mesmo evento separando com vírgula. Útil quando precisa fazer duas coisas ao mesmo tempo — como registrar analytics E executar a ação.`,
       code: `<script setup>
 function track(event) {
   console.log('analytics:', event.type)
@@ -123,10 +112,6 @@ function track(event) {
 function handleSubmit(data) {
   console.log('submit:', data)
 }
-
-function validate(event) {
-  return event.target.value.length > 0
-}
 </script>
 
 <template>
@@ -134,13 +119,6 @@ function validate(event) {
   <button @click="track($event), handleSubmit(formData)">
     Enviar
   </button>
-
-  <!-- Handler arrow com lógica inline -->
-  <input
-    @input="(e) => {
-      if (validate(e)) value = e.target.value
-    }"
-  />
 </template>`,
     },
   ],
@@ -184,14 +162,6 @@ function validate(event) {
       front: 'O que faz `@click.once`?',
       back: 'O handler dispara **uma única vez**. Depois o listener é removido automaticamente.',
       code: `<button @click.once="showWelcome">Boas-vindas</button>`,
-      lessonTitle: 'Event Handling',
-    },
-    {
-      id: 'ev-fc-6',
-      front: 'Como passar um argumento E acessar o Event no mesmo handler?',
-      back: 'Use `$event` explicitamente, ou uma arrow function.',
-      code: `<button @click="greet('Ana', $event)">
-<button @click="(e) => greet('Ana', e)">`,
       lessonTitle: 'Event Handling',
     },
   ],
@@ -285,75 +255,49 @@ const count = ref(0)
     {
       id: 'ev-ch-4',
       type: 'fill-blank',
-      title: 'Game de cliques',
-      description: 'Complete o handler de clique (Ctrl dobra, clique normal +1) e o evento de botão direito (-5).',
+      title: 'Modificadores e $event',
+      description: 'Complete: o botão de reset dispara só uma vez, o saudação precisa do $event, e o botão interno não deve propagar o clique.',
       xpReward: 50,
       template: `<script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
-const clicks = ref(0)
+const count = ref(0)
+const msg = ref('')
 
-const levelMsg = computed(() => {
-  if (clicks.value >= 100) return '🔥 Lenda!'
-  if (clicks.value >= 50) return '⚡ Expert!'
-  if (clicks.value >= 20) return '👍 Bom!'
-  return '🐣 Iniciante'
-})
-
-function handleClick(e) {
-  if (e.___) {
-    clicks.value *= 2
-  } else {
-    clicks.value++
-  }
+function greet(name, event) {
+  msg.value = \`Olá \${name}! Clicaste em: \${event.target.textContent}\`
 }
 </script>
 
 <template>
-  <p>{{ clicks }} cliques — {{ levelMsg }}</p>
-  <button
-    @click="handleClick"
-    @___.prevent="clicks = Math.max(0, clicks - 5)"
-    style="padding: 2rem 4rem; font-size: 2rem"
-  >
-    👆 CLIQUE!
-  </button>
-  <p><small>Ctrl+Click = dobrar | Botão direito = -5</small></p>
+  <p>{{ count }} cliques | {{ msg }}</p>
+  <button @click.___="count = 0">Reset (só 1x)</button>
+  <button @click="greet('Vue', ___)">Olá Vue</button>
+  <div @click="count++">
+    <button @click.___="msg = 'interno'">Não propaga</button>
+  </div>
 </template>`,
-      blanks: ['ctrlKey', 'contextmenu'],
+      blanks: ['once', '$event', 'stop'],
       solution: `<script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
-const clicks = ref(0)
+const count = ref(0)
+const msg = ref('')
 
-const levelMsg = computed(() => {
-  if (clicks.value >= 100) return '🔥 Lenda!'
-  if (clicks.value >= 50) return '⚡ Expert!'
-  if (clicks.value >= 20) return '👍 Bom!'
-  return '🐣 Iniciante'
-})
-
-function handleClick(e) {
-  if (e.ctrlKey) {
-    clicks.value *= 2
-  } else {
-    clicks.value++
-  }
+function greet(name, event) {
+  msg.value = \`Olá \${name}! Clicaste em: \${event.target.textContent}\`
 }
 </script>
 
 <template>
-  <p>{{ clicks }} cliques — {{ levelMsg }}</p>
-  <button
-    @click="handleClick"
-    @contextmenu.prevent="clicks = Math.max(0, clicks - 5)"
-    style="padding: 2rem 4rem; font-size: 2rem"
-  >
-    👆 CLIQUE!
-  </button>
-  <p><small>Ctrl+Click = dobrar | Botão direito = -5</small></p>
+  <p>{{ count }} cliques | {{ msg }}</p>
+  <button @click.once="count = 0">Reset (só 1x)</button>
+  <button @click="greet('Vue', $event)">Olá Vue</button>
+  <div @click="count++">
+    <button @click.stop="msg = 'interno'">Não propaga</button>
+  </div>
 </template>`,
-      hint: 'event.ctrlKey detecta Ctrl pressionado. @contextmenu é o botão direito do mouse.',
+      hint: '.once dispara só uma vez. $event passa o objeto evento explicitamente. .stop evita que o clique suba ao elemento pai.',
     },
     {
       id: 'ev-ch-5',

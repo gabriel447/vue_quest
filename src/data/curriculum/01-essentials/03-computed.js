@@ -9,21 +9,24 @@ export default {
   theory: [
     {
       title: 'O problema com lógica no template',
-      body: `Expressões simples no template são ok. Mas lógica complexa polui o template, dificulta a leitura e não pode ser reutilizada.
-Computed properties resolvem isso: lógica no script, template limpo.`,
-      code: `<!-- ❌ Ruim: lógica complexa no template -->
-<p>
-  {{ tasks.filter(t => t.done && t.priority === 'high').length }}
-  de {{ tasks.length }} tarefas prioritárias concluídas
-</p>
+      body: `Se você colocar lógica complexa direto no template, fica difícil de ler e impossível de reutilizar em outro lugar. Computed properties resolvem isso: você escreve a lógica uma vez no script e usa o resultado limpo no template.`,
+      code: `<script setup>
+import { ref, computed } from 'vue'
 
-<!-- ✅ Bom: computed property -->
-<p>{{ highPriorityDone }} de {{ tasks.length }} tarefas prioritárias concluídas</p>`,
+const items = ref(['Vue', 'React', 'Angular', 'Svelte'])
+
+const total = computed(() => items.value.length)
+const hasItems = computed(() => items.value.length > 0)
+</script>
+
+<template>
+  <p>{{ total }} tecnologias cadastradas</p>
+  <p v-if="hasItems">Lista não está vazia!</p>
+</template>`,
     },
     {
-      title: 'computed() — valores derivados com cache',
-      body: `computed() cria um valor que é calculado a partir de outras refs ou reactive(). Vue rastreia as dependências automaticamente e só recalcula quando elas mudam.
-O resultado é cacheado — acessar a mesma computed 100x não executa a função 100x.`,
+      title: 'computed() — valor que se calcula sozinho',
+      body: `Uma computed é como uma variável que se atualiza automaticamente. Ela rastreia as refs que usa como dependências — quando qualquer uma mudar, ela recalcula. E o resultado fica em cache: acessar a mesma computed 100 vezes não roda a função 100 vezes.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 
@@ -31,12 +34,10 @@ const firstName = ref('Ana')
 const lastName = ref('Silva')
 const score = ref(85)
 
-// Só recalcula quando firstName ou lastName mudam
 const fullName = computed(() =>
   \`\${firstName.value} \${lastName.value}\`
 )
 
-// Só recalcula quando score muda
 const grade = computed(() => {
   if (score.value >= 90) return 'A'
   if (score.value >= 80) return 'B'
@@ -51,9 +52,10 @@ const grade = computed(() => {
     },
     {
       title: 'Computed vs Métodos — cache vs execução',
-      body: `Computed: cacheia o resultado. Só recalcula quando as dependências mudam. Ideal para valores derivados.
-Método: executa toda vez que o componente renderiza, mesmo sem mudanças. Use para ações.`,
-      code: `import { ref, computed } from 'vue'
+      body: `A diferença crucial: método recalcula TODA VEZ que o componente renderiza, mesmo que nada tenha mudado. Computed só recalcula quando suas dependências mudam — o resultado fica em cache.
+Para valores derivados, computed é sempre a escolha certa.`,
+      code: `<script setup>
+import { ref, computed } from 'vue'
 
 const items = ref([
   { name: 'Vue', done: true },
@@ -61,22 +63,20 @@ const items = ref([
   { name: 'Angular', done: true },
 ])
 
-// ✅ computed — cacheado, só recalcula se items mudar
+// ✅ Computed: só recalcula se items mudar
 const doneCount = computed(() =>
   items.value.filter(i => i.done).length
 )
 
-// ❌ método — executa a cada render (desnecessário aqui)
+// ⚠️ Método: recalcula em TODA renderização
 function getDoneCount() {
   return items.value.filter(i => i.done).length
 }
-
-// Regra: valor derivado = computed. Ação/evento = método.`,
+</script>`,
     },
     {
       title: 'Computed com getter e setter (writable)',
-      body: `Por padrão, computeds são somente-leitura (apenas getter). Você pode criar um setter para torná-las graváveis.
-Útil para sincronizar dados entre componentes ou transformações bidirecionais.`,
+      body: `Por padrão, computeds são só leitura. Mas você pode criar uma que também escreve — com um get() e um set(). É útil para transformações bidirecionais, como editar um nome completo e separar em nome/sobrenome.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 
@@ -84,11 +84,9 @@ const firstName = ref('Ana')
 const lastName = ref('Silva')
 
 const fullName = computed({
-  // Getter: lê e combina
   get() {
     return \`\${firstName.value} \${lastName.value}\`
   },
-  // Setter: decompõe e distribui
   set(newValue) {
     const [first, ...rest] = newValue.split(' ')
     firstName.value = first
@@ -96,15 +94,13 @@ const fullName = computed({
   },
 })
 
-// Usar o setter:
-// fullName.value = 'João Costa'
-// → firstName = 'João', lastName = 'Costa'
+// fullName.value = 'João Pedro'
+// → firstName = 'João', lastName = 'Pedro'
 </script>`,
     },
     {
       title: 'Computed para filtros e ordenação',
-      body: `Um caso de uso clássico: filtrar e ordenar listas sem mutar o array original.
-A computed retorna um novo array derivado — o original permanece intacto.`,
+      body: `Um dos usos mais clássicos: filtrar e ordenar listas sem mutar o array original. A computed retorna um novo array derivado — o original permanece intacto, o que evita bugs e mantém o histórico.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 
@@ -112,9 +108,9 @@ const search = ref('')
 const sortBy = ref('name')
 
 const products = ref([
-  { id: 1, name: 'Vue Course', price: 99, category: 'Dev' },
-  { id: 2, name: 'React Book', price: 49, category: 'Dev' },
-  { id: 3, name: 'Guitar', price: 299, category: 'Music' },
+  { id: 1, name: 'Vue Course', price: 99 },
+  { id: 2, name: 'React Book', price: 49 },
+  { id: 3, name: 'Guitar', price: 299 },
 ])
 
 const filtered = computed(() =>
@@ -156,13 +152,18 @@ const total = computed(() =>
     },
     {
       id: 'comp-fc-3',
-      front: 'Computed pode fazer fetch ou ter side effects?',
-      back: 'Não. Computed deve ser uma função pura. Para side effects, use `watch()` ou `onMounted()`.',
-      code: `// ❌ Nunca
-const bad = computed(() => fetch('/api'))
-
-// ✅ Use watch para side effects
-watch(id, () => fetch('/api/' + id.value))`,
+      front: 'Como criar uma computed que também pode ser escrita (writable)?',
+      back: 'Passe um objeto com `get()` e `set()` ao invés de uma função arrow. O `set` recebe o novo valor.',
+      code: `const fullName = computed({
+  get() {
+    return \`\${firstName.value} \${lastName.value}\`
+  },
+  set(val) {
+    const [first, ...rest] = val.split(' ')
+    firstName.value = first
+    lastName.value = rest.join(' ')
+  },
+})`,
       lessonTitle: 'Computed Properties',
     },
     {
@@ -363,51 +364,44 @@ const results = computed(() =>
     {
       id: 'comp-ch-5',
       type: 'fix-bug',
-      title: 'Computed com bug de cache',
-      description: 'O contador de tarefas nunca atualiza mesmo quando tasks muda. Encontre e corrija o problema.',
+      title: 'Bugs com computed',
+      description: 'O código tem 3 erros relacionados ao computed. Encontre e corrija.',
       xpReward: 30,
       buggyCode: `<script setup>
 import { ref } from 'vue'
 
-const tasks = ref([
-  { title: 'Estudar Vue', done: true },
-  { title: 'Fazer PR', done: false },
-])
+const price = ref(10)
+const qty = ref(3)
 
-// Esta função não tem cache e tem um bug de escopo
-const doneCount = tasks.value.filter(t => t.done).length
+const total = price.value * qty.value
 
-function addTask(title) {
-  tasks.value.push({ title, done: false })
+function increase() {
+  qty = qty.value + 1
 }
 </script>
 
 <template>
-  <p>{{ doneCount }} feitas de {{ tasks.length }}</p>
-  <button @click="addTask('Nova tarefa')">+ Tarefa</button>
+  <p>Total: {{ total }}</p>
+  <button @click="increase">+1 qty</button>
 </template>`,
       solution: `<script setup>
 import { ref, computed } from 'vue'
 
-const tasks = ref([
-  { title: 'Estudar Vue', done: true },
-  { title: 'Fazer PR', done: false },
-])
+const price = ref(10)
+const qty = ref(3)
 
-const doneCount = computed(() =>
-  tasks.value.filter(t => t.done).length
-)
+const total = computed(() => price.value * qty.value)
 
-function addTask(title) {
-  tasks.value.push({ title, done: false })
+function increase() {
+  qty.value = qty.value + 1
 }
 </script>
 
 <template>
-  <p>{{ doneCount }} feitas de {{ tasks.length }}</p>
-  <button @click="addTask('Nova tarefa')">+ Tarefa</button>
+  <p>Total: {{ total }}</p>
+  <button @click="increase">+1 qty</button>
 </template>`,
-      explanation: 'doneCount precisa ser computed(() => ...) para reagir quando tasks muda. Um valor calculado uma vez (sem computed) nunca se atualiza.',
+      explanation: '1) computed não estava importado. 2) total precisava ser computed para reagir a mudanças. 3) qty = ... reatribui a variável — use qty.value.',
     },
   ],
 }

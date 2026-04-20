@@ -11,6 +11,15 @@ import watchers from './01-essentials/10-watchers.js'
 import templateRefs from './01-essentials/11-template-refs.js'
 import componentsBasics from './01-essentials/12-components-basics.js'
 
+import registration from './02-components/01-registration.js'
+import propsInDepth from './02-components/02-props-in-depth.js'
+import customEvents from './02-components/03-custom-events.js'
+import componentVmodel from './02-components/04-component-vmodel.js'
+import slots from './02-components/05-slots.js'
+import scopedSlots from './02-components/06-scoped-slots.js'
+import provideInject from './02-components/07-provide-inject.js'
+import fallthroughAttrs from './02-components/08-fallthrough-attrs.js'
+
 export const modules = [
   {
     id: 'essentials',
@@ -35,11 +44,26 @@ export const modules = [
     bossBattle: {
       id: 'boss-essentials',
       title: 'Boss: App de Lista de Compras',
-      description: 'Combine tudo que aprendeu para criar uma lista de compras completa com filtros e totais.',
+      description: 'Construa um app de lista de compras completo aplicando TUDO que você aprendeu no módulo.',
       xpReward: 150,
       requirements: [
         'template-syntax', 'reactivity', 'computed', 'conditional',
-        'list-rendering', 'event-handling', 'form-bindings', 'components-basics',
+        'list-rendering', 'event-handling', 'class-style', 'form-bindings',
+        'lifecycle', 'watchers', 'template-refs', 'components-basics',
+      ],
+      objectives: [
+        'Template syntax: exibir dados com {{ }} e :bind',
+        'Reactivity: ref() para itens, reactive() para o formulário',
+        'Computed: total de itens, total gasto, itens filtrados',
+        'Conditional: v-if/v-show para estado vazio, loading, categorias',
+        'List rendering: v-for com :key para renderizar a lista',
+        'Event handling: @click, @submit.prevent, @keyup.enter',
+        'Class & Style: :class para item comprado, :style para prioridade',
+        'Form bindings: v-model nos campos do formulário',
+        'Lifecycle: onMounted para carregar do localStorage',
+        'Watchers: watch para salvar no localStorage automaticamente',
+        'Template refs: focar o input de nome automaticamente',
+        'Components: componente separado ItemCompra com props + emit',
       ],
     },
   },
@@ -49,8 +73,36 @@ export const modules = [
     icon: '🧩',
     description: 'Props, eventos, slots, provide/inject e mais.',
     color: '#3b82f6',
-    locked: true,
-    lessons: [],
+    lessons: [
+      registration,
+      propsInDepth,
+      customEvents,
+      componentVmodel,
+      slots,
+      scopedSlots,
+      provideInject,
+      fallthroughAttrs,
+    ],
+    bossBattle: {
+      id: 'boss-components',
+      title: 'Boss: UI Component Library',
+      description: 'Construa uma mini biblioteca de componentes reutilizáveis aplicando props, slots, provide/inject e mais.',
+      xpReward: 200,
+      requirements: [
+        'registration', 'props-in-depth', 'custom-events', 'component-vmodel',
+        'slots', 'scoped-slots', 'provide-inject', 'fallthrough-attrs',
+      ],
+      objectives: [
+        'Registration: importe e use componentes localmente',
+        'Props In-Depth: valide tipos, required e defaults',
+        'Custom Events: comunique filho → pai com defineEmits',
+        'Component v-model: crie um input customizado com defineModel',
+        'Slots: crie um Card e Modal com slots nomeados',
+        'Scoped Slots: crie uma lista com renderização customizável',
+        'Provide/Inject: compartilhe tema escuro/claro sem prop drilling',
+        'Fallthrough Attrs: crie wrappers que repassam atributos corretamente',
+      ],
+    },
   },
   {
     id: 'reusability',

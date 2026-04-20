@@ -9,8 +9,8 @@ export default {
   theory: [
     {
       title: 'v-if — renderização condicional',
-      body: `v-if renderiza o elemento apenas quando a condição é verdadeira.
-Quando falsa, o elemento é completamente removido do DOM — não existe na árvore.`,
+      body: `Pensa no v-if como uma porta. Quando a condição é false, a porta está fechada — o elemento nem existe no DOM. Quando é true, o elemento é criado e inserido na página.
+Isso é diferente de só ocultar visualmente: o elemento realmente não existe quando false.`,
       code: `<script setup>
 import { ref } from 'vue'
 const isLoggedIn = ref(false)
@@ -19,7 +19,7 @@ const userLevel = ref(3)
 
 <template>
   <!-- Elemento existe no DOM somente quando true -->
-  <h1 v-if="isLoggedIn">Bem-vindo de volta!</h1>
+  <h1 v-if="isLoggedIn">Bem-vindo de volta! 👋</h1>
 
   <!-- Combinando com expressão -->
   <span v-if="userLevel >= 5">⭐ Expert</span>
@@ -27,9 +27,9 @@ const userLevel = ref(3)
     },
     {
       title: 'v-else e v-else-if — múltiplas condições',
-      body: `v-else fornece o bloco alternativo. v-else-if permite múltiplas condições encadeadas.
-Devem ser colocados imediatamente após o elemento v-if ou v-else-if.`,
+      body: `Encadeie condições com v-else-if e v-else, exatamente como um if/else if/else do JavaScript. A regra é simples: eles precisam estar um logo após o outro, sem elementos no meio.`,
       code: `<script setup>
+import { ref } from 'vue'
 const score = ref(78)
 </script>
 
@@ -50,33 +50,32 @@ const score = ref(78)
     },
     {
       title: 'v-if em <template> — sem wrapper no DOM',
-      body: `Para aplicar v-if a múltiplos elementos sem adicionar um div wrapper desnecessário, use em <template>.
-O <template> é uma tag invisível — não aparece no DOM final.`,
+      body: `E se você quiser condicionar vários elementos sem adicionar uma div desnecessária no DOM? Use <template v-if>. O <template> é uma tag invisível — ela só existe no código, não aparece na página renderizada.`,
       code: `<script setup>
+import { ref } from 'vue'
 const hasPermission = ref(true)
 </script>
 
 <template>
-  <!-- ❌ Adiciona div desnecessária no DOM -->
+  <!-- ❌ Adiciona <div> desnecessária no DOM -->
   <div v-if="hasPermission">
     <h2>Painel Admin</h2>
     <p>Dados confidenciais aqui</p>
-    <AdminMenu />
   </div>
 
-  <!-- ✅ Nenhuma div extra no DOM -->
+  <!-- ✅ Nenhum elemento extra no DOM -->
   <template v-if="hasPermission">
     <h2>Painel Admin</h2>
     <p>Dados confidenciais aqui</p>
-    <AdminMenu />
   </template>
 </template>`,
     },
     {
       title: 'v-show — visibilidade com CSS',
-      body: `v-show alterna apenas a propriedade CSS display:none. O elemento sempre existe no DOM.
-Não funciona em <template> e não suporta v-else.`,
+      body: `O v-show é diferente do v-if: o elemento SEMPRE existe no DOM, mas fica visível ou invisível via CSS (display: none). Como o elemento já está montado, alternar é muito mais rápido.
+Limitação: não funciona em <template> e não suporta v-else.`,
       code: `<script setup>
+import { ref } from 'vue'
 const isMenuOpen = ref(false)
 const isAdmin = ref(true)
 </script>
@@ -87,22 +86,22 @@ const isAdmin = ref(true)
     <a>Home</a>
     <a>Perfil</a>
   </nav>
-  <button @click="isMenuOpen = !isMenuOpen">Menu</button>
+  <button @click="isMenuOpen = !isMenuOpen">☰ Menu</button>
 
-  <!-- v-if: elemento criado/destruído -->
+  <!-- v-if: cria e destrói o componente -->
   <AdminPanel v-if="isAdmin" />
 </template>`,
     },
     {
       title: 'v-if vs v-show — quando usar cada um',
-      body: `v-if: custo maior na alternância (monta/desmonta componente + lifecycle hooks). Menor custo inicial se falso.
-v-show: custo menor na alternância (só CSS), mas sempre renderiza e executa lifecycle hooks.`,
-      code: `<!-- ✅ v-show: toggle frequente (modais, dropdowns, tooltips) -->
+      body: `Regra simples: se o elemento vai aparecer/sumir frequentemente (menus, modais, tooltips) → use v-show. Se a condição raramente muda ou depende de permissão → use v-if.
+v-show tem custo inicial maior (sempre renderiza), mas toggle é barato. v-if tem custo de montagem/desmontagem a cada alternância.`,
+      code: `<!-- ✅ v-show: toggle frequente -->
 <Modal v-show="isOpen" />
 <Tooltip v-show="hovered" />
 <Drawer v-show="sidebarOpen" />
 
-<!-- ✅ v-if: condição raramente muda ou depende de dados async -->
+<!-- ✅ v-if: condição raramente muda ou depende de auth -->
 <AdminPanel v-if="user.isAdmin" />
 <ErrorBoundary v-if="hasError" :error="error" />
 <DataChart v-if="chartData.length > 0" :data="chartData" />`,
@@ -146,13 +145,13 @@ v-show: custo menor na alternância (só CSS), mas sempre renderiza e executa li
     },
     {
       id: 'cond-fc-5',
-      front: 'v-if e v-show podem estar no mesmo elemento?',
-      back: 'Sim, mas evite — é confuso. Prefira usar computed ou mover a lógica para o script.',
-      code: `<!-- Evite isso -->
-<div v-if="a" v-show="b">...</div>
+      front: 'Quais são as limitações do v-show?',
+      back: 'Não funciona em `<template>` e não suporta `v-else`. O elemento sempre existe no DOM, só a visibilidade muda.',
+      code: `<!-- ❌ v-show não funciona em <template> -->
+<template v-show="ok">...</template>
 
-<!-- Prefira computed -->
-<div v-if="showItem">...</div>`,
+<!-- ✅ Use v-if em <template> -->
+<template v-if="ok">...</template>`,
       lessonTitle: 'Conditional Rendering',
     },
   ],
@@ -242,79 +241,65 @@ const username = ref('')
     {
       id: 'cond-ch-4',
       type: 'fill-blank',
-      title: 'FAQ com v-show',
-      description: 'Complete a FAQ: use v-show para as respostas e alterne o estado ao clicar.',
+      title: 'Tooltip com v-show',
+      description: 'Complete: use v-show para mostrar o tooltip e alterne ao clicar no botão.',
       xpReward: 40,
       template: `<script setup>
 import { ref } from 'vue'
 
-const open = ref([false, false, false])
-
-const faqs = [
-  { q: 'O que é Vue.js?', a: 'Um framework JavaScript progressivo para UIs reativas.' },
-  { q: 'Vue é difícil?', a: 'Não! Tem curva de aprendizado suave e boa documentação.' },
-  { q: 'Vue é usado no trabalho?', a: 'Sim! Grandes empresas usam Vue em produção.' },
-]
+const showTip = ref(false)
 </script>
 
 <template>
-  <div v-for="(faq, i) in faqs" :key="i">
-    <button @click="open[i] = !open[i]">
-      {{ open[i] ? '▼' : '▶' }} {{ faq.q }}
-    </button>
-    <p ___="open[i]">{{ faq.a }}</p>
-  </div>
+  <button @click="showTip = ___">
+    Dica ℹ️
+  </button>
+  <p ___="showTip">v-show mantém o elemento no DOM — ideal para toggle rápido!</p>
 </template>`,
-      blanks: ['v-show'],
+      blanks: ['!showTip', 'v-show'],
       solution: `<script setup>
 import { ref } from 'vue'
 
-const open = ref([false, false, false])
-
-const faqs = [
-  { q: 'O que é Vue.js?', a: 'Um framework JavaScript progressivo para UIs reativas.' },
-  { q: 'Vue é difícil?', a: 'Não! Tem curva de aprendizado suave e boa documentação.' },
-  { q: 'Vue é usado no trabalho?', a: 'Sim! Grandes empresas usam Vue em produção.' },
-]
+const showTip = ref(false)
 </script>
 
 <template>
-  <div v-for="(faq, i) in faqs" :key="i">
-    <button @click="open[i] = !open[i]">
-      {{ open[i] ? '▼' : '▶' }} {{ faq.q }}
-    </button>
-    <p v-show="open[i]">{{ faq.a }}</p>
-  </div>
+  <button @click="showTip = !showTip">
+    Dica ℹ️
+  </button>
+  <p v-show="showTip">v-show mantém o elemento no DOM — ideal para toggle rápido!</p>
 </template>`,
-      hint: 'v-show mantém o elemento no DOM mas oculta com CSS. Ideal para toggle frequente.',
+      hint: 'v-show mostra/oculta com CSS. !showTip inverte o valor booleano a cada clique.',
     },
     {
       id: 'cond-ch-5',
       type: 'fix-bug',
-      title: 'Condicionais mal posicionados',
-      description: 'O código tem erros: v-else não está logo após v-if, e v-show é usado onde v-if seria mais correto. Corrija.',
-      xpReward: 30,
-      buggyCode: `<template>
-  <div>
-    <p v-if="isAdmin">Painel Admin</p>
-    <span class="badge">Usuário</span>
-    <p v-else>Área restrita</p>
+      title: 'Bugs no sistema de badges',
+      description: 'O sistema de badges tem 3 erros. Encontre e corrija.',
+      xpReward: 35,
+      buggyCode: `<script setup>
+import { ref } from 'vue'
+const score = ref(85)
+</script>
 
-    <!-- Carregado do servidor, raramente muda -->
-    <HeavyComponent v-show="dataLoaded" :data="serverData" />
-  </div>
+<template>
+  <p v-if="score >= 50">🥉 Iniciante</p>
+  <p v-if="score >= 75">🥈 Intermediário</p>
+  <p v-else-if="score >= 90">🥇 Expert</p>
+  <p v-if="score < 50">❌ Reprovado</p>
 </template>`,
-      solution: `<template>
-  <div>
-    <p v-if="isAdmin">Painel Admin</p>
-    <p v-else>Área restrita</p>
-    <span class="badge">Usuário</span>
+      solution: `<script setup>
+import { ref } from 'vue'
+const score = ref(85)
+</script>
 
-    <!-- Carregado do servidor, raramente muda: use v-if -->
-    <HeavyComponent v-if="dataLoaded" :data="serverData" />
-  </div>
+<template>
+  <p v-if="score >= 90">🥇 Expert</p>
+  <p v-else-if="score >= 75">🥈 Intermediário</p>
+  <p v-else-if="score >= 50">🥉 Iniciante</p>
+  <p v-else>❌ Reprovado</p>
 </template>`,
-      explanation: 'v-else deve ser imediatamente após v-if. Para componentes pesados que raramente alternam, v-if é melhor que v-show (não monta quando falso).',
+      explanation: '1) Condições fora de ordem — a mais ampla (>= 50) captura tudo antes das mais específicas. 2) Segundo v-if quebra a cadeia — use v-else-if para continuar o encadeamento. 3) Último v-if com condição explícita — use v-else para o caso padrão.',
     },
   ],
 }

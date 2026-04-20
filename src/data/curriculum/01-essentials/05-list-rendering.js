@@ -9,8 +9,7 @@ export default {
   theory: [
     {
       title: 'v-for — iterando arrays',
-      body: `v-for renderiza um elemento para cada item de um array.
-A sintaxe é "item in array". Você também pode acessar o índice como segundo parâmetro.`,
+      body: `Imagina ter que escrever 50 <li> na mão. O v-for faz isso por você: percorre cada item de um array e repete o elemento para cada um. O segundo parâmetro (opcional) é o índice da posição.`,
       code: `<script setup>
 import { ref } from 'vue'
 
@@ -28,7 +27,7 @@ const players = ref([
       {{ player.name }}: {{ player.score }} pts
     </li>
 
-    <!-- Com índice -->
+    <!-- Com índice — começa em 0 -->
     <li v-for="(player, index) in players" :key="player.id">
       #{{ index + 1 }} {{ player.name }}
     </li>
@@ -36,14 +35,14 @@ const players = ref([
 </template>`,
     },
     {
-      title: ':key — identificação única dos itens',
-      body: `O atributo :key é obrigatório em v-for. Ele ajuda Vue a identificar cada elemento para atualizações eficientes.
-Use sempre um valor único e estável — geralmente um ID do banco de dados.`,
+      title: ':key — o RG de cada item da lista',
+      body: `O :key é como um RG para cada elemento. O Vue usa ele para rastrear qual elemento é qual quando a lista muda. Sem :key, o Vue pode misturar os elementos errados ao reordenar, causando bugs visuais.
+Regra: sempre use um ID estável e único como key. Nunca use o índice em listas que podem ser reordenadas.`,
       code: `<!-- ✅ Correto: key único e estável (ID do dado) -->
 <li v-for="item in items" :key="item.id">{{ item.name }}</li>
 <li v-for="user in users" :key="user.uuid">{{ user.email }}</li>
 
-<!-- ⚠️ Evitar: índice como key em listas que podem mudar -->
+<!-- ⚠️ Evitar: índice como key em listas que mudam de ordem -->
 <!-- Se você adicionar/remover/reordenar, Vue pode reutilizar -->
 <!-- o elemento errado, causando bugs visuais -->
 <li v-for="(item, i) in items" :key="i">{{ item.name }}</li>
@@ -53,7 +52,7 @@ Use sempre um valor único e estável — geralmente um ID do banco de dados.`,
     },
     {
       title: 'v-for com objetos — iterando propriedades',
-      body: `v-for também funciona em objetos JavaScript. Os parâmetros são: valor, chave, índice.`,
+      body: `O v-for também funciona em objetos JavaScript! Você itera pelas propriedades. Os parâmetros são: valor, chave, índice — nessa ordem.`,
       code: `<script setup>
 const profile = {
   name: 'Ana Silva',
@@ -79,8 +78,8 @@ const profile = {
     },
     {
       title: 'v-for com range e <template>',
-      body: `v-for aceita um número inteiro para repetir N vezes. O valor vai de 1 a N.
-Use <template v-for> para renderizar múltiplos elementos por item sem wrapper.`,
+      body: `O v-for aceita um número inteiro para repetir N vezes — útil para criar estrelas de avaliação, grids, etc. O valor vai de 1 até N (não de 0!).
+Use <template v-for> para renderizar múltiplos elementos por item sem criar uma div wrapper.`,
       code: `<!-- Repetir 5 estrelas: valores 1, 2, 3, 4, 5 -->
 <span v-for="n in 5" :key="n">
   {{ n <= userRating ? '⭐' : '☆' }}
@@ -94,12 +93,12 @@ Use <template v-for> para renderizar múltiplos elementos por item sem wrapper.`
     },
     {
       title: 'v-for + v-if — nunca no mesmo elemento',
-      body: `Nunca use v-if e v-for no mesmo elemento — v-if tem prioridade e não tem acesso à variável do v-for.
-Use <template v-for> e coloque v-if no filho, ou melhor: use uma computed filtrada.`,
+      body: `Nunca coloque v-if e v-for no mesmo elemento. O v-if tem prioridade e não consegue acessar a variável do v-for — vai dar erro.
+A solução certa: use <template v-for> com v-if no elemento filho. Mas o melhor mesmo é usar uma computed filtrada — mais limpo e mais performático.`,
       code: `<!-- ❌ Errado: v-if não acessa 'todo' do v-for -->
 <li v-for="todo in todos" v-if="!todo.done" :key="todo.id">
 
-<!-- ✅ Certo: template externo, v-if interno -->
+<!-- ✅ Certo: template externo, v-if no filho -->
 <template v-for="todo in todos" :key="todo.id">
   <li v-if="!todo.done">{{ todo.title }}</li>
 </template>
@@ -107,8 +106,7 @@ Use <template v-for> e coloque v-if no filho, ou melhor: use uma computed filtra
 <!-- ✅ Melhor ainda: computed filtrada (mais performático) -->
 const activeTodos = computed(() =>
   todos.value.filter(t => !t.done)
-)
-// <li v-for="todo in activeTodos" :key="todo.id">`,
+)`,
     },
   ],
 
@@ -153,17 +151,11 @@ const activeTodos = computed(() =>
     },
     {
       id: 'list-fc-5',
-      front: 'Quais métodos de array Vue detecta automaticamente?',
-      back: 'push, pop, shift, unshift, splice, sort, reverse. Substituir o array inteiro também funciona.',
-      code: `items.value.push('novo')   // ✅
-items.value.sort()          // ✅`,
-      lessonTitle: 'List Rendering',
-    },
-    {
-      id: 'list-fc-6',
-      front: 'Como repetir um elemento N vezes com v-for?',
-      back: 'Passe um número: `v-for="n in 5"`. O `n` vai de 1 a 5.',
-      code: `<span v-for="n in 5" :key="n">⭐</span>`,
+      front: 'Como iterar as propriedades de um objeto com v-for?',
+      back: 'Passe o objeto diretamente. Os parâmetros são: `(value, key, index)` — nessa ordem.',
+      code: `<div v-for="(value, key, index) in profile" :key="key">
+  {{ index + 1 }}. {{ key }}: {{ value }}
+</div>`,
       lessonTitle: 'List Rendering',
     },
   ],
@@ -177,10 +169,10 @@ items.value.sort()          // ✅`,
       xpReward: 20,
       template: `<template>
   <ul>
-    <li ___ in techs" :key="tech">{{ tech }}</li>
+    <li ___="tech in techs" :key="tech">{{ tech }}</li>
   </ul>
 </template>`,
-      blanks: ['v-for="tech'],
+      blanks: ['v-for'],
       solution: `<template>
   <ul>
     <li v-for="tech in techs" :key="tech">{{ tech }}</li>
@@ -281,126 +273,77 @@ function complete(id) {
     {
       id: 'list-ch-4',
       type: 'fill-blank',
-      title: 'Ranking dinâmico',
-      description: 'Complete a computed que ordena os jogadores por pontuação (maior primeiro).',
+      title: 'Ordenar lista com computed',
+      description: 'Complete a computed que retorna os números ordenados do maior para o menor.',
       xpReward: 50,
       template: `<script setup>
 import { ref, computed } from 'vue'
 
-const players = ref([
-  { id: 1, name: 'Ana', score: 850 },
-  { id: 2, name: 'Bruno', score: 1200 },
-  { id: 3, name: 'Carol', score: 975 },
-  { id: 4, name: 'Diego', score: 630 },
-])
+const nums = ref([42, 7, 95, 13, 78])
 
-// Spread para não mutar o original, sort por score decrescente
-const ranking = ___(() =>
-  [...players.value].___((___, b) => b.score - a.score)
+const sorted = ___(() =>
+  [...nums.value].___((___, b) => b - a)
 )
-
-function addPoints() {
-  const points = Math.floor(Math.random() * 91) + 10
-  players.value[0].score += points
-}
 </script>
 
 <template>
-  <button @click="addPoints">🎲 +pontos para Ana</button>
-  <ol>
-    <li v-for="(player, i) in ranking" :key="player.id">
-      {{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '' }}
-      {{ player.name }} — {{ player.score }} pts
-    </li>
-  </ol>
+  <li v-for="n in sorted" :key="n">{{ n }}</li>
 </template>`,
       blanks: ['computed', 'sort', 'a'],
       solution: `<script setup>
 import { ref, computed } from 'vue'
 
-const players = ref([
-  { id: 1, name: 'Ana', score: 850 },
-  { id: 2, name: 'Bruno', score: 1200 },
-  { id: 3, name: 'Carol', score: 975 },
-  { id: 4, name: 'Diego', score: 630 },
-])
+const nums = ref([42, 7, 95, 13, 78])
 
-const ranking = computed(() =>
-  [...players.value].sort((a, b) => b.score - a.score)
+const sorted = computed(() =>
+  [...nums.value].sort((a, b) => b - a)
 )
-
-function addPoints() {
-  const points = Math.floor(Math.random() * 91) + 10
-  players.value[0].score += points
-}
 </script>
 
 <template>
-  <button @click="addPoints">🎲 +pontos para Ana</button>
-  <ol>
-    <li v-for="(player, i) in ranking" :key="player.id">
-      {{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '' }}
-      {{ player.name }} — {{ player.score }} pts
-    </li>
-  </ol>
+  <li v-for="n in sorted" :key="n">{{ n }}</li>
 </template>`,
-      hint: '[...array].sort() cria cópia antes de ordenar. b.score - a.score = decrescente (maior primeiro).',
+      hint: '[...array] cria uma cópia antes de ordenar. b - a = decrescente (maior primeiro).',
     },
     {
       id: 'list-ch-5',
       type: 'fix-bug',
-      title: 'Lista com bugs de v-for',
-      description: 'O código tem 3 problemas: key usando índice em lista mutável, v-if e v-for no mesmo elemento, e método não reativo. Corrija.',
+      title: 'Bugs no v-for',
+      description: 'O código tem 3 erros relacionados ao v-for. Encontre e corrija.',
       xpReward: 35,
       buggyCode: `<script setup>
 import { ref } from 'vue'
 
-const tasks = ref([
-  { id: 1, title: 'Vue', done: false },
-  { id: 2, title: 'React', done: true },
-  { id: 3, title: 'Angular', done: false },
-])
+const items = ref(['Vue', 'React', 'Angular'])
 
-function removeFirst() {
-  tasks = tasks.value.slice(1)  // ❌ bug
+function remove() {
+  items = items.value.slice(1)
 }
 </script>
 
 <template>
-  <ul>
-    <li
-      v-for="(task, i) in tasks"
-      v-if="!task.done"
-      :key="i"
-    >
-      {{ task.title }}
-    </li>
-  </ul>
-  <button @click="removeFirst">Remover primeiro</button>
+  <li v-for="(item, i) in items" v-if="item" :key="i">
+    {{ item }}
+  </li>
+  <button @click="remove">Remover</button>
 </template>`,
       solution: `<script setup>
 import { ref } from 'vue'
 
-const tasks = ref([
-  { id: 1, title: 'Vue', done: false },
-  { id: 2, title: 'React', done: true },
-  { id: 3, title: 'Angular', done: false },
-])
+const items = ref(['Vue', 'React', 'Angular'])
 
-function removeFirst() {
-  tasks.value = tasks.value.slice(1)  // ✅ .value
+function remove() {
+  items.value = items.value.slice(1)
 }
 </script>
 
 <template>
-  <ul>
-    <template v-for="task in tasks" :key="task.id">
-      <li v-if="!task.done">{{ task.title }}</li>
-    </template>
-  </ul>
-  <button @click="removeFirst">Remover primeiro</button>
+  <template v-for="item in items" :key="item">
+    <li>{{ item }}</li>
+  </template>
+  <button @click="remove">Remover</button>
 </template>`,
-      explanation: '1) Use task.id como key, não o índice. 2) Separe v-for e v-if com <template>. 3) Refs precisam de .value para ser atribuídas.',
+      explanation: '1) items = ... reatribui — use items.value. 2) v-if e v-for no mesmo elemento — use <template v-for> com v-if no filho. 3) :key="i" (índice) muda ao remover — use :key="item".',
     },
   ],
 }

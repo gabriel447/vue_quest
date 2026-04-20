@@ -9,26 +9,28 @@ export default {
   theory: [
     {
       title: 'O ciclo de vida de um componente',
-      body: `Todo componente Vue passa por fases: criação, montagem no DOM, atualização e destruição.
-Lifecycle hooks permitem executar código em cada fase. No Composition API, são funções que recebem um callback.`,
-      code: `// Diagrama do ciclo de vida (simplificado):
-//
-//  setup()
-//    ↓
-//  onBeforeMount()   ← antes de inserir no DOM
-//    ↓
-//  onMounted()       ← DOM disponível ✅ mais usado
-//    ↓
-//  [estado muda] → onBeforeUpdate() → onUpdated()
-//    ↓
-//  onBeforeUnmount() ← antes de destruir
-//    ↓
-//  onUnmounted()     ← cleanup ✅ segundo mais usado`,
+      body: `Todo componente Vue passa por fases: é criado, montado no DOM, pode re-renderizar várias vezes e por fim é destruído. Em cada fase você pode registrar um hook para executar código no momento certo.`,
+      code: `<script setup>
+import {
+  onBeforeMount, onMounted,
+  onBeforeUpdate, onUpdated,
+  onBeforeUnmount, onUnmounted,
+} from 'vue'
+
+onBeforeMount(() => console.log('1. antes de montar — DOM ainda não existe'))
+onMounted(() => console.log('2. montado — DOM pronto ✓'))
+
+onBeforeUpdate(() => console.log('3. antes de atualizar'))
+onUpdated(() => console.log('4. atualizado — DOM reflete o novo estado'))
+
+onBeforeUnmount(() => console.log('5. antes de destruir — componente ainda funciona'))
+onUnmounted(() => console.log('6. destruído — limpe timers e listeners aqui'))
+</script>`,
     },
     {
       title: 'onMounted — o hook mais importante',
-      body: `onMounted dispara após o componente ser inserido no DOM.
-Use para: acessar elementos DOM, fazer requisições de dados iniciais, inicializar bibliotecas externas.`,
+      body: `onMounted roda quando o componente acabou de aparecer na tela. O DOM está disponível, então você pode acessar elementos, buscar dados da API, e inicializar bibliotecas externas.
+É aqui que a maioria dos "efeitos iniciais" do componente acontecem.`,
       code: `<script setup>
 import { ref, onMounted } from 'vue'
 
@@ -36,10 +38,8 @@ const users = ref([])
 const isLoading = ref(true)
 
 onMounted(async () => {
-  // ✅ DOM disponível — pode acessar refs de template aqui
-  // ✅ Ideal para requisições iniciais de dados
   try {
-    const res = await fetch('/api/users')
+    const res = await fetch('https://jsonplaceholder.typicode.com/users?_limit=5')
     users.value = await res.json()
   } finally {
     isLoading.value = false
@@ -48,7 +48,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="isLoading">Carregando...</div>
+  <div v-if="isLoading">⏳ Carregando...</div>
   <ul v-else>
     <li v-for="user in users" :key="user.id">{{ user.name }}</li>
   </ul>
@@ -56,8 +56,8 @@ onMounted(async () => {
     },
     {
       title: 'onUnmounted — limpeza e prevenção de memory leaks',
-      body: `onUnmounted dispara quando o componente é removido do DOM.
-Essencial para limpar: timers (setInterval/setTimeout), event listeners globais, WebSockets, subscriptions.`,
+      body: `Quando um componente é removido, coisas que você criou dentro dele continuam rodando se você não limpar. Um setInterval criado em onMounted vai continuar executando mesmo depois que o componente sumiu da tela.
+Use onUnmounted para limpar tudo: timers, event listeners globais, WebSockets.`,
       code: `<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
@@ -70,28 +70,24 @@ function updateWidth() {
 }
 
 onMounted(() => {
-  // Inicia timer
+  // Inicia recursos
   clockInterval = setInterval(() => {
     time.value = new Date().toLocaleTimeString()
   }, 1000)
-
-  // Adiciona listener global
   window.addEventListener('resize', updateWidth)
 })
 
 onUnmounted(() => {
-  // ✅ Limpa timer — evita memory leak
+  // Limpa recursos — evita memory leak!
   clearInterval(clockInterval)
-
-  // ✅ Remove listener global — evita memory leak
   window.removeEventListener('resize', updateWidth)
 })
 </script>`,
     },
     {
       title: 'onUpdated — após cada re-render',
-      body: `onUpdated dispara após cada re-render do componente por mudança de estado.
-⚠️ Nunca mude estado dentro de onUpdated sem condição — causa loop infinito.`,
+      body: `onUpdated roda após cada re-render do componente por mudança de estado. É raro precisar dele, mas é útil quando você precisa fazer algo com o DOM atualizado — como rolar para o final de uma lista de mensagens.
+Cuidado: nunca mude estado dentro de onUpdated sem condição — causa loop infinito.`,
       code: `<script setup>
 import { ref, onUpdated } from 'vue'
 
@@ -99,14 +95,11 @@ const messages = ref([])
 const listEl = ref(null)
 
 onUpdated(() => {
-  // ✅ Útil para sincronizar DOM com estado
+  // Rola para o fim da lista quando chega nova mensagem
   if (listEl.value) {
-    // Auto-scroll para o último item quando messages muda
     listEl.value.scrollTop = listEl.value.scrollHeight
   }
-
-  // ❌ Nunca faça isso — loop infinito!
-  // messages.value.push('novo')
+  // ⚠️ Nunca: messages.value.push('algo') — loop infinito!
 })
 </script>
 
@@ -118,25 +111,20 @@ onUpdated(() => {
     },
     {
       title: 'onBeforeMount e onBeforeUnmount',
-      body: `onBeforeMount: chamado antes de o componente ser inserido no DOM. O template ainda não foi renderizado.
-onBeforeUnmount: chamado antes de a destruição começar. O componente ainda está completamente funcional.`,
-      code: `import {
-  onBeforeMount,
-  onBeforeUnmount,
-} from 'vue'
+      body: `onBeforeMount roda antes do componente aparecer na tela — o DOM ainda não existe. Útil para preparação de dados síncronos.
+onBeforeUnmount roda antes da destruição começar — o componente ainda está funcional. Ótimo para salvar dados antes de sair.`,
+      code: `<script setup>
+import { onBeforeMount, onBeforeUnmount } from 'vue'
 
 onBeforeMount(() => {
-  // DOM ainda não existe aqui
-  // Útil para preparar dados síncronos antes de renderizar
   console.log('Prestes a montar...')
 })
 
 onBeforeUnmount(() => {
-  // Componente ainda funcional — última chance antes de destruir
-  // Útil para salvar estado antes de sair
   console.log('Prestes a desmontar...')
   saveUserProgress()
-})`,
+})
+</script>`,
     },
   ],
 
@@ -171,16 +159,20 @@ onUpdated(() => { count.value++ })`,
     {
       id: 'lc-fc-4',
       front: 'Qual a ordem dos hooks mais usados?',
-      back: '`onMounted` → `onUpdated` → `onUnmounted`',
-      code: `// setup → onMounted → [re-renders] → onUnmounted`,
+      back: '`onMounted` → `onUpdated` (por re-render) → `onUnmounted`',
+      code: `// setup → onMounted → [re-renders: onUpdated] → onUnmounted`,
       lessonTitle: 'Lifecycle Hooks',
     },
     {
       id: 'lc-fc-5',
-      front: 'O que é memory leak em Vue?',
-      back: 'Recurso (timer, listener, WebSocket) que continua ativo após o componente ser destruído. Sempre limpe em `onUnmounted`.',
-      code: `onUnmounted(() => {
-  clearInterval(timer)  // ✅ sem leak
+      front: 'Para que servem `onBeforeMount` e `onBeforeUnmount`?',
+      back: '`onBeforeMount`: roda antes de aparecer na tela — DOM ainda não existe. `onBeforeUnmount`: roda antes da destruição — componente ainda funciona, ideal para salvar dados.',
+      code: `onBeforeMount(() => {
+  // DOM ainda não existe aqui
+})
+
+onBeforeUnmount(() => {
+  saveUserProgress() // componente ainda está vivo
 })`,
       lessonTitle: 'Lifecycle Hooks',
     },
@@ -394,53 +386,113 @@ onMounted(fetchPosts)
     },
     {
       id: 'lc-ch-4',
-      type: 'fix-bug',
-      title: 'Memory leak',
-      description: 'Este componente tem um memory leak: o event listener de resize nunca é removido. Corrija o código.',
+      type: 'fill-blank',
+      title: 'Log em tempo real',
+      description: 'Complete: inicie o timer, role a lista automaticamente no onUpdated e limpe o timer ao desmontar.',
       xpReward: 30,
-      buggyCode: `<script setup>
-import { ref, onMounted } from 'vue'
+      template: `<script setup>
+import { ref, onMounted, onUpdated, onUnmounted } from 'vue'
 
-const width = ref(window.innerWidth)
-const height = ref(window.innerHeight)
+const logs = ref([])
+const listEl = ref(null)
+let timer = null
 
 onMounted(() => {
-  // ❌ Listener nunca removido — memory leak!
-  window.addEventListener('resize', () => {
-    width.value = window.innerWidth
-    height.value = window.innerHeight
-  })
+  timer = ___(() => logs.value.push(new Date().toLocaleTimeString()), 1000)
+})
+
+___(() => {
+  listEl.value.scrollTop = listEl.value.scrollHeight
+})
+
+onUnmounted(() => ___(timer))
+</script>
+
+<template>
+  <ul ref="listEl" style="max-height:120px;overflow:auto">
+    <li v-for="log in logs" :key="log">{{ log }}</li>
+  </ul>
+</template>`,
+      blanks: ['setInterval', 'onUpdated', 'clearInterval'],
+      solution: `<script setup>
+import { ref, onMounted, onUpdated, onUnmounted } from 'vue'
+
+const logs = ref([])
+const listEl = ref(null)
+let timer = null
+
+onMounted(() => {
+  timer = setInterval(() => logs.value.push(new Date().toLocaleTimeString()), 1000)
+})
+
+onUpdated(() => {
+  listEl.value.scrollTop = listEl.value.scrollHeight
+})
+
+onUnmounted(() => clearInterval(timer))
+</script>
+
+<template>
+  <ul ref="listEl" style="max-height:120px;overflow:auto">
+    <li v-for="log in logs" :key="log">{{ log }}</li>
+  </ul>
+</template>`,
+      hint: 'onUpdated roda após cada re-render — ideal para rolar a lista. onUnmounted é o lugar certo para clearInterval.',
+    },
+    {
+      id: 'lc-ch-5',
+      type: 'fix-bug',
+      title: 'Bugs nos lifecycle hooks',
+      description: 'O componente tem 3 erros relacionados ao ciclo de vida. Encontre e corrija.',
+      xpReward: 35,
+      buggyCode: `<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const inputEl = ref(null)
+inputEl.value.focus()
+
+const count = ref(0)
+let timer = null
+
+onMounted(() => {
+  timer = setInterval(() => count.value++, 1000)
+})
+
+onUpdated(() => {
+  count.value = 0
+})
+
+onUnmounted(() => {
+  console.log('unmounted')
 })
 </script>
 
 <template>
-  <p>{{ width }} × {{ height }}</p>
+  <input ref="inputEl" placeholder="Auto-foco" />
+  <p>{{ count }}</p>
 </template>`,
       solution: `<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-const width = ref(window.innerWidth)
-const height = ref(window.innerHeight)
-
-// ✅ Função nomeada para poder remover depois
-function onResize() {
-  width.value = window.innerWidth
-  height.value = window.innerHeight
-}
+const inputEl = ref(null)
+const count = ref(0)
+let timer = null
 
 onMounted(() => {
-  window.addEventListener('resize', onResize)
+  inputEl.value.focus()
+  timer = setInterval(() => count.value++, 1000)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', onResize)
+  clearInterval(timer)
 })
 </script>
 
 <template>
-  <p>{{ width }} × {{ height }}</p>
+  <input ref="inputEl" placeholder="Auto-foco" />
+  <p>{{ count }}</p>
 </template>`,
-      explanation: '1) Sempre remova event listeners globais em onUnmounted. 2) A função deve ser nomeada (não anônima) para poder ser removida com removeEventListener.',
+      explanation: '1) inputEl.value é null antes de montar — acesse dentro de onMounted. 2) Mutar estado dentro de onUpdated sem condição causa loop infinito — remova o bloco. 3) onUnmounted deve limpar o timer com clearInterval, não apenas logar.',
     },
   ],
 }

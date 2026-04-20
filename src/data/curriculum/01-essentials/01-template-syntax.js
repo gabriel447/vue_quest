@@ -9,10 +9,8 @@ export default {
   theory: [
     {
       title: 'Interpolação de texto — Mustache {{ }}',
-      body: `A forma mais básica de exibir dados reativos no template é a sintaxe de duplas chaves, também chamada de "Mustache".
-O valor dentro é substituído pelo valor da propriedade reativa correspondente e atualiza automaticamente quando ela muda.
-
-Fonte: vuejs.org/guide/essentials/template-syntax`,
+      body: `Pensa no {{ }} como uma mini janelinha no HTML que exibe o valor de uma variável. Quando o valor muda, a janelinha atualiza sozinha — sem precisar recarregar a página.
+Dentro das chaves você pode colocar qualquer expressão JavaScript que retorne um valor.`,
       code: `<script setup>
 import { ref } from 'vue'
 
@@ -23,47 +21,36 @@ const score = ref(42)
 <template>
   <p>Mensagem: {{ msg }}</p>
   <p>Pontuação: {{ score }}</p>
-
-  <!-- Também funciona com expressões -->
   <p>Dobro: {{ score * 2 }}</p>
   <p>Status: {{ score > 50 ? 'Expert' : 'Iniciante' }}</p>
 </template>`,
     },
     {
       title: 'Attribute Binding com v-bind / :',
-      body: `Mustaches {{ }} não funcionam dentro de atributos HTML. Use a diretiva v-bind para vincular atributos dinamicamente.
-A forma curta é apenas : (dois pontos). Sempre prefira a forma curta.
-
-No Vue 3.4+, se o nome da prop é idêntico ao nome da variável, você pode omitir o valor: :id é equivalente a :id="id".`,
+      body: `O {{ }} só funciona no conteúdo do HTML, não dentro de atributos. Para vincular atributos dinamicamente (src, href, disabled...), use v-bind: ou a forma curta : (dois pontos).
+No Vue 3.4+, se o nome da variável é igual ao atributo, você pode omitir o valor: :id é o mesmo que :id="id".`,
       code: `<script setup>
 import { ref } from 'vue'
 
-const id = ref('main-title')
+const id = ref('titulo-principal')
 const href = ref('https://vuejs.org')
 const isDisabled = ref(true)
 const imgSrc = ref('/logo.png')
 </script>
 
 <template>
-  <!-- Forma completa -->
   <div v-bind:id="id">...</div>
-
-  <!-- Forma curta (preferida) -->
   <div :id="id">...</div>
   <a :href="href">Documentação Vue</a>
   <button :disabled="isDisabled">Enviar</button>
   <img :src="imgSrc" :alt="'Logo Vue'" />
-
-  <!-- Vue 3.4+: same-name shorthand -->
   <div :id>...</div>
 </template>`,
     },
     {
       title: 'Expressões JavaScript no Template',
-      body: `Vue suporta expressões JavaScript completas dentro das duplas chaves e em valores de diretivas.
-Apenas expressões únicas que retornam valor funcionam — statements como if, for, var não são permitidos.
-
-O template tem acesso a uma lista restrita de globais: Math, Date, e outros built-ins. Propriedades do window não são acessíveis por padrão.`,
+      body: `Dentro do {{ }} e das diretivas você pode escrever qualquer expressão JS que retorne um valor: ternários, métodos de string, operações matemáticas.
+O que NÃO funciona: declarações como var x = 1, if (...) {}, for (...) {}. Elas não retornam valor, então o Vue não sabe o que exibir.`,
       code: `<script setup>
 import { ref } from 'vue'
 
@@ -73,72 +60,48 @@ const msg = ref('Vue!')
 </script>
 
 <template>
-  <!-- ✅ Expressões válidas — retornam um valor -->
   <p>{{ score + 10 }}</p>
   <p>{{ ok ? 'Aprovado' : 'Reprovado' }}</p>
   <p>{{ msg.toUpperCase() }}</p>
-
-  <!-- ✅ Globais permitidos: Math, Date -->
   <p>{{ Math.max(score, 100) }}</p>
   <p>{{ Date.now() }}</p>
-
-  <!-- ❌ Statements não funcionam (erro de compilação):
-    {{ var x = 1 }}
-    {{ if (ok) { return msg } }}
-  -->
 </template>`,
     },
     {
       title: 'Raw HTML com v-html',
-      body: `A interpolação {{ }} renderiza conteúdo como texto puro (HTML é escapado automaticamente).
-Para renderizar HTML real, use a diretiva v-html.
-
-⚠️ Alerta de Segurança (XSS): NUNCA use v-html com conteúdo enviado por usuários. Isso pode abrir vulnerabilidades de Cross-Site Scripting (XSS).`,
+      body: `Por padrão, {{ }} trata tudo como texto puro — tags HTML aparecem literalmente na tela, não são interpretadas. Isso é seguro por design.
+Se você tem HTML de uma fonte confiável (seu próprio sistema) e quer que ele seja renderizado de verdade, use v-html. Mas nunca com conteúdo de usuários — risco de XSS.`,
       code: `<script setup>
 import { ref } from 'vue'
 
-const rawHtml = ref('<strong style="color:#42b883">Vue é incrível!</strong>')
-const userInput = ref('<img src=x onerror=alert("XSS")>')
+const highlighted = ref('<strong style="color:#42b883">Vue!</strong>')
 </script>
 
 <template>
-  <!-- Renderiza o HTML real -->
-  <p v-html="rawHtml"></p>
-  <!-- Resultado: <strong style="color:#42b883">Vue é incrível!</strong> -->
-
-  <!-- Interpolação escapa o HTML — seguro para input de usuário -->
-  <p>{{ rawHtml }}</p>
-  <!-- Resultado: texto literal com as tags visíveis -->
-
-  <!-- ❌ NUNCA: v-html com conteúdo de usuário -->
-  <!-- <p v-html="userInput"></p> → XSS! -->
+  <p v-html="highlighted"></p>
+  <p>{{ highlighted }}</p>
 </template>`,
     },
     {
       title: 'Diretivas — v-nome:argumento.modificador',
-      body: `Diretivas são atributos especiais com prefixo v-. Aplicam comportamento reativo ao DOM.
-O formato completo é: v-nome:argumento.modificador="expressão"
+      body: `Diretivas são atributos especiais que começam com v-. Elas dão superpoderes ao HTML: mostrar/ocultar elementos, repetir listas, capturar eventos.
+O formato completo é v-nome:argumento.modificador="expressão". Formas curtas: v-bind:href → :href | v-on:click → @click.`,
+      code: `<template>
+  <p v-if="seen">Agora você me vê!</p>
+  <p v-else>Modo oculto</p>
+  <p v-show="visible">Sempre no DOM, mas pode estar oculto</p>
 
-Formas curtas: v-bind:href → :href | v-on:click → @click`,
-      code: `<!-- Diretivas sem argumento -->
-<p v-if="seen">Agora você me vê!</p>
-<p v-else>Modo oculto</p>
-<p v-show="visible">Sempre no DOM, mas pode estar oculto</p>
+  <a v-bind:href="url">Link</a>
+  <a v-on:click="doSomething">Clique</a>
 
-<!-- Diretivas com argumento (após os dois pontos) -->
-<a v-bind:href="url">Link</a>  <!-- argumento: href -->
-<a v-on:click="doSomething">Clique</a>  <!-- argumento: click -->
+  <a :href="url">Link</a>
+  <a @click="doSomething">Clique</a>
 
-<!-- Formas curtas -->
-<a :href="url">Link</a>
-<a @click="doSomething">Clique</a>
+  <a :[attributeName]="url">Dinâmico</a>
+  <a @[eventName]="doSomething">Dinâmico</a>
 
-<!-- Argumento dinâmico (entre colchetes) -->
-<a :[attributeName]="url">Dinâmico</a>
-<a @[eventName]="doSomething">Dinâmico</a>
-
-<!-- Modificador (após o ponto) -->
-<form @submit.prevent="onSubmit">...</form>`,
+  <form @submit.prevent="onSubmit">...</form>
+</template>`,
     },
   ],
 
@@ -320,14 +283,18 @@ const userInput = ref('<script>alert("XSS!")<\/script> Olá!')
       buggyCode: `<template>
   <div>
     <img src="{{ avatarUrl }}" alt="foto" />
+
     <p>Status: {{ var status = score > 50 ? 'Expert' : 'Novato' }}</p>
+
     <button v-bind="disabled" :class="btnClass">Enviar</button>
   </div>
 </template>`,
       solution: `<template>
   <div>
     <img :src="avatarUrl" alt="foto" />
+
     <p>Status: {{ score > 50 ? 'Expert' : 'Novato' }}</p>
+
     <button :disabled="disabled" :class="btnClass">Enviar</button>
   </div>
 </template>`,

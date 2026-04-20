@@ -8,476 +8,524 @@ export default {
 
   theory: [
     {
-      title: 'O que são componentes e por que usar?',
-      body: `Componentes são blocos reutilizáveis de UI — cada um encapsula template, lógica e estilos.
-São o building block fundamental do Vue. Cada arquivo .vue é um componente.`,
-      code: `<!-- MeuBotao.vue — um componente autônomo -->
+      title: 'O que são componentes?',
+      body: `Componentes são como blocos de LEGO. Em vez de escrever uma página inteira num arquivo gigante, você divide a UI em peças reutilizáveis. Cada componente tem seu próprio estado, template e estilo encapsulados num arquivo .vue.
+Com <script setup>, os componentes importados ficam disponíveis automaticamente no template — sem precisar registrar.`,
+      code: `<!-- MeuBotao.vue — componente reutilizável -->
 <script setup>
 import { ref } from 'vue'
-
 const count = ref(0)
-
-function click() {
-  count.value++
-}
 </script>
 
 <template>
-  <button @click="click" class="btn">
-    Clicado {{ count }} vezes
-  </button>
+  <button @click="count++">Cliques: {{ count }}</button>
 </template>
 
-<style scoped>
-/* scoped: só afeta este componente */
-.btn {
-  background: #42b883;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-</style>`,
-    },
-    {
-      title: 'Usando componentes — import e instâncias',
-      body: `Importe o arquivo .vue e use como tag HTML customizada no template.
-Cada instância do componente tem seu próprio estado — completamente independente.`,
-      code: `<!-- App.vue -->
+<!-- App.vue — usando o componente -->
 <script setup>
-import MeuBotao from './MeuBotao.vue'
-import UserCard from './UserCard.vue'
-import SearchBar from './SearchBar.vue'
+import MeuBotao from './MeuBotao.vue'  // importou = registrado!
 </script>
 
 <template>
-  <!-- Cada instância é independente — states separados -->
-  <MeuBotao />   <!-- count = 0 próprio -->
-  <MeuBotao />   <!-- count = 0 próprio -->
-  <MeuBotao />   <!-- count = 0 próprio -->
-
-  <!-- Componentes mais complexos -->
-  <UserCard />
-  <SearchBar />
+  <!-- Cada instância tem seu próprio estado -->
+  <MeuBotao />
+  <MeuBotao />
+  <MeuBotao />
 </template>`,
     },
     {
-      title: 'Props — pai → filho',
-      body: `Props são dados passados do componente pai para o filho.
-O filho declara com defineProps(). Dados fluem sempre de pai para filho (one-way data flow).`,
-      code: `<!-- UserCard.vue -->
+      title: 'Props — dados do pai para o filho',
+      body: `Props são como parâmetros de função para componentes. O pai passa dados para o filho via :prop. O filho declara o que aceita com defineProps(). Dados sempre fluem de cima para baixo — o filho nunca modifica a prop diretamente.`,
+      code: `<!-- CartaoUsuario.vue -->
 <script setup>
 const props = defineProps({
-  name: {
-    type: String,
-    required: true,
-  },
-  level: {
-    type: Number,
-    default: 1,
-  },
-  isOnline: {
-    type: Boolean,
-    default: false,
-  },
+  nome: String,
+  nivel: { type: Number, default: 1 },
+  isAdmin: Boolean,
 })
 </script>
 
 <template>
   <div class="card">
-    <span :class="{ online: props.isOnline }">●</span>
-    <h3>{{ props.name }}</h3>
-    <span>Nível {{ props.level }}</span>
+    <h3>{{ props.nome }}</h3>
+    <span>Nível {{ props.nivel }}</span>
+    <span v-if="props.isAdmin">👑 Admin</span>
   </div>
 </template>
 
-<!-- Pai usando UserCard -->
-<template>
-  <UserCard name="Ana Silva" :level="5" :is-online="true" />
-  <UserCard name="Bruno" />  <!-- level=1, isOnline=false -->
-</template>`,
+<!-- Pai passa as props -->
+<CartaoUsuario nome="Ana Silva" :nivel="5" :isAdmin="true" />
+<CartaoUsuario nome="Bruno" />  <!-- nivel usa o default: 1 -->`,
     },
     {
-      title: 'Emits — filho → pai',
-      body: `O filho se comunica com o pai emitindo eventos via defineEmits().
-O pai escuta com @nomeDoEvento. Dados podem ser passados junto com o evento.`,
-      code: `<!-- ConfirmDialog.vue -->
+      title: 'Emits — eventos do filho para o pai',
+      body: `E se o filho precisar avisar o pai que algo aconteceu? Ele emite um evento com defineEmits(). O pai escuta com @evento. A comunicação é unidirecional: dados descem via props, eventos sobem via emit.`,
+      code: `<!-- BotaoContador.vue -->
 <script setup>
-const props = defineProps({
-  message: String,
-})
+const emit = defineEmits(['incrementar', 'resetar'])
 
-const emit = defineEmits(['confirm', 'cancel'])
-
-function handleConfirm() {
-  emit('confirm', { timestamp: Date.now() })
+function adicionar() {
+  emit('incrementar', 10)  // payload opcional
 }
 </script>
 
 <template>
-  <div class="dialog">
-    <p>{{ props.message }}</p>
-    <button @click="handleConfirm">✅ Confirmar</button>
-    <button @click="emit('cancel')">❌ Cancelar</button>
-  </div>
+  <button @click="adicionar">+10</button>
+  <button @click="emit('resetar')">Reset</button>
 </template>
 
-<!-- Pai.vue -->
+<!-- Pai ouve os eventos -->
+<script setup>
+import { ref } from 'vue'
+const total = ref(0)
+
+function onIncrement(valor) {
+  total.value += valor
+}
+</script>
+
 <template>
-  <ConfirmDialog
-    message="Tem certeza?"
-    @confirm="(data) => console.log('Confirmado em', data.timestamp)"
-    @cancel="showDialog = false"
+  <p>Total: {{ total }}</p>
+  <BotaoContador
+    @incrementar="onIncrement"
+    @resetar="total = 0"
   />
 </template>`,
     },
     {
-      title: 'Slots — injeção de conteúdo',
-      body: `Slots permitem que o pai injete conteúdo dentro do filho.
-O filho define onde o conteúdo aparece com <slot />. Cria componentes altamente reutilizáveis.`,
-      code: `<!-- Card.vue — componente de layout reutilizável -->
+      title: 'Slots — conteúdo passado pelo pai',
+      body: `Props passam dados. Slots passam HTML e outros componentes. O filho usa <slot /> como placeholder — o pai preenche esse espaço com o que quiser. Útil para criar componentes genéricos como Card, Modal ou Button.`,
+      code: `<!-- CardBase.vue — componente genérico com slot -->
 <template>
   <div class="card">
-    <div class="card-header">
-      <slot name="header">Título padrão</slot>
-    </div>
-    <div class="card-body">
-      <slot />  <!-- slot padrão (sem nome) -->
-    </div>
-    <div class="card-footer">
-      <slot name="footer" />
-    </div>
+    <slot />  <!-- o conteúdo do pai vai aqui -->
   </div>
 </template>
 
-<!-- Pai usando o Card com slots nomeados -->
+<!-- Pai preenche o slot com qualquer conteúdo -->
+<CardBase>
+  <h2>Título do card</h2>
+  <p>Qualquer conteúdo aqui</p>
+</CardBase>
+
+<CardBase>
+  <img src="foto.jpg" />
+  <button>Seguir</button>
+</CardBase>`,
+    },
+    {
+      title: 'Componentes dinâmicos com <component :is>',
+      body: `Use <component :is="..."> para renderizar um componente diferente dinamicamente. Combine com <KeepAlive> para preservar o estado quando o componente não está visível — útil em tabs e wizards.`,
+      code: `<script setup>
+import { ref } from 'vue'
+import TabHome from './TabHome.vue'
+import TabPerfil from './TabPerfil.vue'
+import TabConfig from './TabConfig.vue'
+
+const tabs = [
+  { name: 'Home', component: TabHome },
+  { name: 'Perfil', component: TabPerfil },
+  { name: 'Config', component: TabConfig },
+]
+
+const currentTab = ref(tabs[0])
+</script>
+
 <template>
-  <Card>
-    <template #header>
-      <h2>🏆 Ranking</h2>
-    </template>
+  <div class="tabs">
+    <button
+      v-for="tab in tabs"
+      :key="tab.name"
+      @click="currentTab = tab"
+    >
+      {{ tab.name }}
+    </button>
+  </div>
 
-    <!-- Conteúdo do slot padrão -->
-    <p>Ana: 1200 pts</p>
-    <p>Bruno: 950 pts</p>
-
-    <template #footer>
-      <button>Ver todos</button>
-    </template>
-  </Card>
+  <!-- KeepAlive preserva o estado das tabs -->
+  <KeepAlive>
+    <component :is="currentTab.component" />
+  </KeepAlive>
 </template>`,
     },
   ],
 
   flashcards: [
     {
-      id: 'cb-fc-1',
-      front: 'Como declarar props no componente filho?',
-      back: 'Use `defineProps()` no `<script setup>`. É uma macro — não precisa importar.',
-      code: `const props = defineProps({
-  title: String,
-  count: { type: Number, default: 0 },
-})`,
+      id: 'comp-b-fc-1',
+      front: 'Como registrar um componente para usar no template?',
+      back: 'Com `<script setup>`, basta importar — o componente fica disponível automaticamente no template.',
+      code: `import MeuComp from './MeuComp.vue'
+// <MeuComp /> já funciona no template`,
       lessonTitle: 'Components Basics',
     },
     {
-      id: 'cb-fc-2',
-      front: 'Como o filho envia eventos para o pai?',
-      back: 'Declare com `defineEmits()` e dispare com `emit()`. O pai escuta com `@nomeEvento`.',
-      code: `const emit = defineEmits(['change'])
-emit('change', novoValor)
-// Pai: <Filho @change="handler" />`,
+      id: 'comp-b-fc-2',
+      front: 'Como passar dados do pai para o filho?',
+      back: 'Pai usa `:prop="valor"`. Filho declara com `defineProps()`.',
+      code: `// filho
+const props = defineProps({ titulo: String })
+
+// pai
+// <Filho :titulo="'Olá'" />`,
       lessonTitle: 'Components Basics',
     },
     {
-      id: 'cb-fc-3',
+      id: 'comp-b-fc-3',
+      front: 'Como o filho comunica algo ao pai?',
+      back: 'Filho usa `defineEmits()` + `emit("evento", payload)`. Pai escuta com `@evento="handler"`.',
+      code: `// filho
+const emit = defineEmits(['salvo'])
+emit('salvo', dados)
+
+// pai: @salvo="onSalvo"`,
+      lessonTitle: 'Components Basics',
+    },
+    {
+      id: 'comp-b-fc-4',
       front: 'O que é um slot?',
-      back: 'Um "buraco" no template do filho onde o pai injeta conteúdo.',
-      code: `<!-- Filho -->
-<div><slot /></div>
+      back: 'Um placeholder no filho onde o pai injeta conteúdo HTML/componentes.',
+      code: `// filho: <slot />
 
-<!-- Pai -->
-<Card><p>Meu conteúdo</p></Card>`,
+// pai
+<Filho>
+  <p>Conteúdo aqui</p>
+</Filho>`,
       lessonTitle: 'Components Basics',
     },
     {
-      id: 'cb-fc-4',
-      front: 'Cada instância de componente tem estado compartilhado?',
-      back: 'Não — cada instância tem seu **próprio estado independente**.',
-      code: `<Counter />  <!-- count = 0 próprio -->
-<Counter />  <!-- count = 0 próprio -->`,
-      lessonTitle: 'Components Basics',
-    },
-    {
-      id: 'cb-fc-5',
-      front: 'Como implementar v-model em um componente customizado?',
-      back: 'Receba a prop `modelValue` e emita `update:modelValue`.',
-      code: `defineProps({ modelValue: String })
-defineEmits(['update:modelValue'])
-// <input :value="modelValue"
-//   @input="emit('update:modelValue', $event.target.value)">`,
-      lessonTitle: 'Components Basics',
-    },
-    {
-      id: 'cb-fc-6',
-      front: 'Props são somente leitura no filho?',
-      back: 'Sim — nunca mute props diretamente. Emita um evento e deixe o pai decidir.',
-      code: `// ❌
-props.count++
-
-// ✅
-emit('update:count', props.count + 1)`,
+      id: 'comp-b-fc-5',
+      front: 'Como renderizar componentes dinamicamente?',
+      back: 'Use `<component :is="comp">`. Combine com `<KeepAlive>` para preservar o estado quando o componente não está visível.',
+      code: `<KeepAlive>
+  <component :is="currentTab.component" />
+</KeepAlive>`,
       lessonTitle: 'Components Basics',
     },
   ],
 
   challenges: [
     {
-      id: 'cb-ch-1',
+      id: 'comp-b-ch-1',
       type: 'fill-blank',
-      title: 'Declarar props com tipos e defaults',
-      description: 'Complete o componente para aceitar `name` (String, required), `score` (Number, default 0) e `isActive` (Boolean, default false).',
-      xpReward: 25,
-      template: `<script setup>
+      title: 'Definindo e usando props',
+      description: 'Complete o defineProps do componente filho e a passagem de props no pai.',
+      xpReward: 30,
+      template: `<!-- CartaoJogador.vue (filho) -->
+<script setup>
 const props = ___({
-  name: {
-    type: ___,
-    required: true,
-  },
-  score: {
-    type: Number,
-    ___: 0,
-  },
-  isActive: {
-    type: Boolean,
-    default: false,
-  },
+  nome: String,
+  pontos: Number,
+  posicao: { type: Number, _____: 0 },
 })
 </script>
 
 <template>
-  <p :class="{ active: props.isActive }">
-    {{ props.name }} — {{ props.score }} pts
-  </p>
+  <div class="card">
+    <span class="pos">#{{ props.posicao }}</span>
+    <strong>{{ props.nome }}</strong>
+    <span>{{ props.pontos }} pts</span>
+  </div>
+</template>
+
+<!-- App.vue (pai) — passe as props corretamente -->
+<template>
+  <CartaoJogador
+    ___="'Ana Silva'"
+    ___="1250"
+    ___="1"
+  />
 </template>`,
-      blanks: ['defineProps', 'String', 'default'],
-      solution: `<script setup>
+      blanks: ['defineProps', 'default', ':nome', ':pontos', ':posicao'],
+      solution: `<!-- CartaoJogador.vue (filho) -->
+<script setup>
 const props = defineProps({
-  name: {
-    type: String,
-    required: true,
-  },
-  score: {
-    type: Number,
-    default: 0,
-  },
-  isActive: {
-    type: Boolean,
-    default: false,
-  },
+  nome: String,
+  pontos: Number,
+  posicao: { type: Number, default: 0 },
 })
 </script>
 
 <template>
-  <p :class="{ active: props.isActive }">
-    {{ props.name }} — {{ props.score }} pts
-  </p>
+  <div class="card">
+    <span class="pos">#{{ props.posicao }}</span>
+    <strong>{{ props.nome }}</strong>
+    <span>{{ props.pontos }} pts</span>
+  </div>
+</template>
+
+<!-- App.vue (pai) — passe as props corretamente -->
+<template>
+  <CartaoJogador
+    :nome="'Ana Silva'"
+    :pontos="1250"
+    :posicao="1"
+  />
 </template>`,
-      hint: 'defineProps() com objeto de configuração. type, required, default são as opções.',
+      hint: 'defineProps declara o que o filho aceita. O pai passa com :prop="valor".',
     },
     {
-      id: 'cb-ch-2',
+      id: 'comp-b-ch-2',
       type: 'fill-blank',
-      title: 'Emitir evento com dados',
-      description: 'Complete o componente de rating: ao clicar em uma estrela, emita o evento "rate" com o valor (1-5).',
-      xpReward: 25,
-      template: `<script setup>
-const ___ = ___(['rate'])
+      title: 'Emitindo eventos',
+      description: 'Complete o componente filho para emitir um evento "adicionado" quando o botão é clicado.',
+      xpReward: 40,
+      template: `<!-- BotaoAdicionar.vue (filho) -->
+<script setup>
+const props = defineProps({ item: String })
+const emit = ___(['adicionado'])
+
+function handleClick() {
+  ___(___,  props.item)
+}
 </script>
 
 <template>
-  <div class="stars">
-    <button
-      v-for="n in 5"
-      :key="n"
-      @click="emit('rate', n)"
-    >
-      ⭐ {{ n }}
-    </button>
-  </div>
-</template>`,
-      blanks: ['emit', 'defineEmits'],
-      solution: `<script setup>
-const emit = defineEmits(['rate'])
+  <button @click="handleClick">
+    ➕ Adicionar {{ props.item }}
+  </button>
+</template>
+
+<!-- App.vue (pai) -->
+<script setup>
+import { ref } from 'vue'
+const lista = ref([])
+
+function onAdicionado(item) {
+  lista.value.push(item)
+}
 </script>
 
 <template>
-  <div class="stars">
-    <button
-      v-for="n in 5"
-      :key="n"
-      @click="emit('rate', n)"
-    >
-      ⭐ {{ n }}
-    </button>
-  </div>
+  <BotaoAdicionar item="Vue" ___="onAdicionado" />
+  <ul>
+    <li v-for="(i, idx) in lista" :key="idx">{{ i }}</li>
+  </ul>
 </template>`,
-      hint: 'defineEmits() retorna a função emit. Use emit("nomeEvento", valor).',
+      blanks: ['defineEmits', 'emit', "'adicionado'", '@adicionado'],
+      solution: `<!-- BotaoAdicionar.vue (filho) -->
+<script setup>
+const props = defineProps({ item: String })
+const emit = defineEmits(['adicionado'])
+
+function handleClick() {
+  emit('adicionado', props.item)
+}
+</script>
+
+<template>
+  <button @click="handleClick">
+    ➕ Adicionar {{ props.item }}
+  </button>
+</template>
+
+<!-- App.vue (pai) -->
+<script setup>
+import { ref } from 'vue'
+const lista = ref([])
+
+function onAdicionado(item) {
+  lista.value.push(item)
+}
+</script>
+
+<template>
+  <BotaoAdicionar item="Vue" @adicionado="onAdicionado" />
+  <ul>
+    <li v-for="(i, idx) in lista" :key="idx">{{ i }}</li>
+  </ul>
+</template>`,
+      hint: 'defineEmits declara os eventos. emit("nome", payload) dispara. O pai ouve com @nome="handler".',
     },
     {
-      id: 'cb-ch-3',
+      id: 'comp-b-ch-3',
       type: 'fill-blank',
-      title: 'AlertCard com props, emit e slot',
-      description: 'Complete: declare as props, o emit, e use-os no template com :class e @click.',
-      xpReward: 60,
-      template: `<script setup>
-const props = ___({
-  type: { type: String, default: 'info' },
-  message: String,
-})
-
-const emit = ___(['close'])
-
-const icons = { success: '✅', error: '🔴', warning: '⚠️', info: 'ℹ️' }
+      title: 'Componente com slot',
+      description: 'Complete o componente Card genérico com slot e use-o no pai com conteúdo diferente.',
+      xpReward: 35,
+      template: `<!-- Card.vue (filho com slot) -->
+<script setup>
+defineProps({ titulo: { type: String, default: '' } })
 </script>
 
 <template>
-  <div :class="['alert', \`alert-\${props.type}\`]">
-    <span>{{ icons[props.type] }}</span>
-    <div>
-      <p>{{ props.___ }}</p>
-      <slot />
-    </div>
-    <button @click="emit('___')">×</button>
+  <div class="card">
+    <h3 v-if="titulo">{{ titulo }}</h3>
+    <___  />
   </div>
+</template>
+
+<!-- App.vue (pai) -->
+<template>
+  <Card titulo="Perfil">
+    <p>Ana Silva — Nível 7</p>
+    <button>Seguir</button>
+  </Card>
+
+  <Card>
+    <img src="/avatar.jpg" alt="Avatar" />
+  </Card>
 </template>`,
-      blanks: ['defineProps', 'defineEmits', 'message', 'close'],
-      solution: `<script setup>
-const props = defineProps({
-  type: { type: String, default: 'info' },
-  message: String,
-})
-
-const emit = defineEmits(['close'])
-
-const icons = { success: '✅', error: '🔴', warning: '⚠️', info: 'ℹ️' }
+      blanks: ['slot'],
+      solution: `<!-- Card.vue (filho com slot) -->
+<script setup>
+defineProps({ titulo: { type: String, default: '' } })
 </script>
 
 <template>
-  <div :class="['alert', \`alert-\${props.type}\`]">
-    <span>{{ icons[props.type] }}</span>
-    <div>
-      <p>{{ props.message }}</p>
-      <slot />
-    </div>
-    <button @click="emit('close')">×</button>
+  <div class="card">
+    <h3 v-if="titulo">{{ titulo }}</h3>
+    <slot />
   </div>
+</template>
+
+<!-- App.vue (pai) -->
+<template>
+  <Card titulo="Perfil">
+    <p>Ana Silva — Nível 7</p>
+    <button>Seguir</button>
+  </Card>
+
+  <Card>
+    <img src="/avatar.jpg" alt="Avatar" />
+  </Card>
 </template>`,
-      hint: 'defineProps() declara os dados que o pai passa. defineEmits() declara eventos que o filho dispara.',
+      hint: '<slot /> é o placeholder onde o pai injeta conteúdo.',
     },
     {
-      id: 'cb-ch-4',
+      id: 'comp-b-ch-4',
       type: 'fill-blank',
-      title: 'v-model em componente customizado',
-      description: 'Complete: a prop correta para v-model e o evento que o pai espera receber.',
+      title: 'Comunicação completa — prop + emit',
+      description: 'Complete o componente contador com prop `valor` e emit `atualizar` para comunicação bidirecional.',
       xpReward: 55,
-      template: `<script setup>
-const props = defineProps({
-  ___: { type: Number, default: 50 },
-  min: { type: Number, default: 0 },
-  max: { type: Number, default: 100 },
-  label: { type: String, default: 'Valor' },
-})
+      template: `<!-- Contador.vue (filho) -->
+<script setup>
+const props = defineProps({ valor: Number })
+const emit = defineEmits(['___'])
 
-const emit = defineEmits(['___:modelValue'])
+function incrementar() {
+  ___(___,  props.valor + 1)
+}
+
+function decrementar() {
+  if (props.valor > 0) emit('atualizar', props.valor - 1)
+}
 </script>
 
 <template>
   <div>
-    <label>{{ props.label }}: {{ props.modelValue }}</label>
-    <input
-      type="range"
-      :min="props.min"
-      :max="props.max"
-      :value="props.modelValue"
-      @input="emit('update:modelValue', Number($event.target.value))"
-    />
+    <button @click="decrementar">-</button>
+    <span>{{ props.valor }}</span>
+    <button @click="incrementar">+</button>
   </div>
-</template>`,
-      blanks: ['modelValue', 'update'],
-      solution: `<script setup>
-const props = defineProps({
-  modelValue: { type: Number, default: 50 },
-  min: { type: Number, default: 0 },
-  max: { type: Number, default: 100 },
-  label: { type: String, default: 'Valor' },
-})
+</template>
 
-const emit = defineEmits(['update:modelValue'])
+<!-- App.vue (pai) -->
+<script setup>
+import { ref } from 'vue'
+const total = ref(0)
+</script>
+
+<template>
+  <Contador :valor="total" @___="total = $event" />
+  <p>Total: {{ total }}</p>
+</template>`,
+      blanks: ['atualizar', 'emit', "'atualizar'", 'atualizar'],
+      solution: `<!-- Contador.vue (filho) -->
+<script setup>
+const props = defineProps({ valor: Number })
+const emit = defineEmits(['atualizar'])
+
+function incrementar() {
+  emit('atualizar', props.valor + 1)
+}
+
+function decrementar() {
+  if (props.valor > 0) emit('atualizar', props.valor - 1)
+}
 </script>
 
 <template>
   <div>
-    <label>{{ props.label }}: {{ props.modelValue }}</label>
-    <input
-      type="range"
-      :min="props.min"
-      :max="props.max"
-      :value="props.modelValue"
-      @input="emit('update:modelValue', Number($event.target.value))"
-    />
+    <button @click="decrementar">-</button>
+    <span>{{ props.valor }}</span>
+    <button @click="incrementar">+</button>
   </div>
+</template>
+
+<!-- App.vue (pai) -->
+<script setup>
+import { ref } from 'vue'
+const total = ref(0)
+</script>
+
+<template>
+  <Contador :valor="total" @atualizar="total = $event" />
+  <p>Total: {{ total }}</p>
 </template>`,
-      hint: 'v-model no componente pai usa a prop "modelValue" e o evento "update:modelValue" no filho.',
+      hint: 'O filho emite "atualizar" com o novo valor. O pai escuta com @atualizar e atualiza sua ref. $event é o payload do emit.',
     },
     {
-      id: 'cb-ch-5',
+      id: 'comp-b-ch-5',
       type: 'fix-bug',
       title: 'Comunicação pai-filho com bugs',
-      description: 'O código tem 3 erros: props não declaradas corretamente, emit sem defineEmits, e prop sendo mutada diretamente. Corrija.',
+      description: 'O código tem 3 erros na comunicação pai-filho. Encontre e corrija.',
       xpReward: 35,
       buggyCode: `<!-- Filho.vue -->
 <script setup>
-import { defineProps, defineEmits } from 'vue'  // erro 1
+const props = defineProps({ count: Number })
+const emit = defineEmits('atualizar')
 
-const props = defineProps(['title', 'count'])
-
-// erro 2: sem defineEmits
-function handleClick() {
-  emit('clicked', props.count + 1)
-  props.count++  // erro 3: nunca mute props!
+function increment() {
+  props.count++
 }
 </script>
 
 <template>
-  <div @click="handleClick">
-    {{ props.title }}: {{ props.count }}
-  </div>
+  <button @click="increment">+1</button>
+  <p>{{ props.count }}</p>
+</template>
+
+<!-- App.vue -->
+<script setup>
+import { ref } from 'vue'
+import Filho from './Filho.vue'
+
+const value = ref(0)
+</script>
+
+<template>
+  <p>Total: {{ value }}</p>
+  <Filho :count="value" @atualizar="value" />
 </template>`,
       solution: `<!-- Filho.vue -->
 <script setup>
-// defineProps e defineEmits são macros — NÃO importar de 'vue'
-const props = defineProps({
-  title: String,
-  count: Number,
-})
+const props = defineProps({ count: Number })
+const emit = defineEmits(['atualizar'])
 
-const emit = defineEmits(['clicked'])
-
-function handleClick() {
-  // Emite com o novo valor — pai decide se atualiza
-  emit('clicked', props.count + 1)
-  // Nunca: props.count++ — props são somente-leitura!
+function increment() {
+  emit('atualizar', props.count + 1)
 }
 </script>
 
 <template>
-  <div @click="handleClick">
-    {{ props.title }}: {{ props.count }}
-  </div>
+  <button @click="increment">+1</button>
+  <p>{{ props.count }}</p>
+</template>
+
+<!-- App.vue -->
+<script setup>
+import { ref } from 'vue'
+import Filho from './Filho.vue'
+
+const value = ref(0)
+</script>
+
+<template>
+  <p>Total: {{ value }}</p>
+  <Filho :count="value" @atualizar="value = $event" />
 </template>`,
-      explanation: '1) defineProps/defineEmits são macros do compilador — não importar de "vue". 2) defineEmits() deve ser chamado para usar emit. 3) Props são somente-leitura — emita o evento e deixe o pai atualizar.',
+      explanation: '1) defineEmits recebe um array, não uma string. 2) Nunca modifique props — use emit com o payload. 3) @atualizar="value" não faz nada — use $event para receber o valor: value = $event.',
     },
   ],
 }

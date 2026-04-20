@@ -18,6 +18,11 @@ const routes = [
     component: () => import('../views/LessonView.vue'),
   },
   {
+    path: '/boss/:moduleId',
+    name: 'boss-battle',
+    component: () => import('../views/BossBattleView.vue'),
+  },
+  {
     path: '/review',
     name: 'review',
     component: () => import('../views/ReviewView.vue'),

@@ -21,13 +21,15 @@ const modulesWithProgress = computed(() =>
     const percent = total > 0 ? Math.round((done / total) * 100) : 0
 
     // Primeiro módulo sempre desbloqueado.
-    // Demais: desbloqueiam quando todas as lições do anterior estiverem completas.
+    // Demais: desbloqueiam quando o boss do módulo anterior for concluído.
+    // Se não há boss, desbloqueiam quando todas as lições estiverem completas.
     let locked = false
     if (index > 0) {
       const prev = modules[index - 1]
-      const prevAllDone = prev.lessons.length > 0 &&
-        prev.lessons.every(l => progress.isLessonComplete(l.id))
-      locked = !prevAllDone
+      const prevDone = prev.bossBattle
+        ? progress.isBossBattleComplete(prev.bossBattle.id)
+        : prev.lessons.length > 0 && prev.lessons.every(l => progress.isLessonComplete(l.id))
+      locked = !prevDone
     }
 
     return { ...mod, done, total, percent, locked }

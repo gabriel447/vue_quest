@@ -9,8 +9,7 @@ export default {
   theory: [
     {
       title: 'v-model — two-way binding simplificado',
-      body: `v-model cria um binding bidirecional entre um input e uma variável reativa.
-É um atalho que combina :value (leitura) + @input (escrita) em uma única diretiva.`,
+      body: `v-model é um atalho poderoso. Em vez de escrever :value + @input manualmente, você usa só v-model e ele faz os dois. O estado reativo é sempre a fonte da verdade — o input apenas reflete e atualiza esse estado.`,
       code: `<script setup>
 import { ref } from 'vue'
 const text = ref('')
@@ -21,7 +20,7 @@ const message = ref('Olá Vue!')
   <!-- v-model é atalho para: :value + @input -->
   <input v-model="text" />
 
-  <!-- Equivalente manual: -->
+  <!-- Equivalente manual (mais verbose): -->
   <input
     :value="message"
     @input="message = $event.target.value"
@@ -33,24 +32,21 @@ const message = ref('Olá Vue!')
     },
     {
       title: 'v-model em diferentes tipos de input',
-      body: `v-model adapta-se automaticamente ao tipo de elemento:
-- text/textarea → usa value + input event
-- checkbox → usa checked + change event
-- radio → usa checked + change event
-- select → usa value + change event`,
+      body: `O v-model é inteligente e se adapta ao tipo de elemento. Em checkboxes vira boolean (ou array se múltiplos), em radio buttons vira a string do selecionado, em selects vira o value da option escolhida.`,
       code: `<script setup>
-const checked = ref(false)          // checkbox simples
-const selected = ref([])            // múltiplos checkboxes → array
-const answer = ref('')              // radio buttons
-const city = ref('')                // select
-const bio = ref('')                 // textarea
+import { ref } from 'vue'
+const checked = ref(false)       // checkbox simples → boolean
+const selected = ref([])         // múltiplos checkboxes → array
+const answer = ref('')           // radio buttons → string
+const city = ref('')             // select → string
+const bio = ref('')              // textarea → string
 </script>
 
 <template>
   <!-- Checkbox: boolean -->
   <input type="checkbox" v-model="checked" />
 
-  <!-- Múltiplos checkboxes: array -->
+  <!-- Múltiplos checkboxes: array de values marcados -->
   <input type="checkbox" value="Vue" v-model="selected" />
   <input type="checkbox" value="React" v-model="selected" />
   <input type="checkbox" value="Angular" v-model="selected" />
@@ -66,13 +62,13 @@ const bio = ref('')                 // textarea
     <option value="rj">Rio de Janeiro</option>
   </select>
 
-  <!-- Textarea -->
+  <!-- Textarea funciona igual ao input de texto -->
   <textarea v-model="bio" rows="4" />
 </template>`,
     },
     {
       title: 'Modificadores — .lazy, .number, .trim',
-      body: `v-model tem três modificadores que resolvem casos de uso comuns automaticamente.`,
+      body: `Três modificadores que resolvem casos comuns automaticamente: .lazy atualiza só ao sair do campo (não a cada tecla), .number converte a string para número (inputs sempre retornam string por padrão), .trim remove espaços extras das bordas.`,
       code: `<!-- .lazy: atualiza no evento 'change' (ao sair do campo), não a cada tecla -->
 <input v-model.lazy="username" placeholder="Atualiza ao sair" />
 
@@ -89,10 +85,11 @@ const bio = ref('')                 // textarea
     },
     {
       title: 'Select múltiplo e checkbox com valores customizados',
-      body: `Select com atributo multiple retorna um array. Checkboxes podem ter valores customizados (não só true/false).`,
+      body: `Select com atributo multiple retorna um array de todos os selecionados — aponte para um ref([]). Checkboxes podem ter valores customizados (não só true/false) com true-value e false-value.`,
       code: `<script setup>
-const selectedLanguages = ref([])     // select multiple
-const toggleValue = ref('off')        // checkbox com value custom
+import { ref } from 'vue'
+const selectedLanguages = ref([])   // select multiple → array
+const toggleValue = ref('off')       // checkbox com value custom
 </script>
 
 <template>
@@ -104,7 +101,7 @@ const toggleValue = ref('off')        // checkbox com value custom
   </select>
   <p>Selecionados: {{ selectedLanguages }}</p>
 
-  <!-- Checkbox com true-value e false-value customizados -->
+  <!-- Checkbox com valores customizados (não boolean) -->
   <input
     type="checkbox"
     v-model="toggleValue"
@@ -118,8 +115,7 @@ const toggleValue = ref('off')        // checkbox com value custom
     },
     {
       title: 'Formulários reativos com reactive()',
-      body: `Para formulários complexos, use reactive() para agrupar todos os campos em um único objeto.
-Facilita reset, validação e submissão.`,
+      body: `Para formulários complexos, use reactive() para agrupar todos os campos num único objeto. Facilita reset, validação e submissão — e uma computed isValid mantém o template limpo.`,
       code: `<script setup>
 import { reactive, computed } from 'vue'
 
@@ -143,11 +139,10 @@ function handleSubmit() {
 }
 
 function resetForm() {
-  form.name = ''
-  form.email = ''
-  form.age = null
-  form.plan = 'basic'
-  form.agreedToTerms = false
+  Object.assign(form, {
+    name: '', email: '', age: null,
+    plan: 'basic', agreedToTerms: false,
+  })
 }
 </script>`,
     },
@@ -181,8 +176,8 @@ function resetForm() {
       front: 'Como vincular múltiplos checkboxes a um array?',
       back: 'Aponte todos para o mesmo `ref([])` com v-model. Cada checkbox precisa de um `value`.',
       code: `const selected = ref([])
-<input type="checkbox" value="Vue" v-model="selected" />
-<input type="checkbox" value="React" v-model="selected" />`,
+// <input type="checkbox" value="Vue" v-model="selected" />
+// <input type="checkbox" value="React" v-model="selected" />`,
       lessonTitle: 'Form Input Bindings',
     },
     {
@@ -190,16 +185,9 @@ function resetForm() {
       front: 'Como usar v-model num select múltiplo?',
       back: 'Adicione `multiple` ao `<select>` e aponte v-model para um array.',
       code: `const langs = ref([])
-<select v-model="langs" multiple>
-  <option value="vue">Vue</option>
-</select>`,
-      lessonTitle: 'Form Input Bindings',
-    },
-    {
-      id: 'form-fc-6',
-      front: 'Para que serve v-model.trim?',
-      back: 'Remove espaços do início e fim automaticamente. Útil para campos de nome e email.',
-      code: `<input v-model.trim="name" />`,
+// <select v-model="langs" multiple>
+//   <option value="vue">Vue</option>
+// </select>`,
       lessonTitle: 'Form Input Bindings',
     },
   ],
@@ -398,18 +386,74 @@ function clearSelection() {
     },
     {
       id: 'form-ch-4',
+      type: 'fill-blank',
+      title: 'Formulário com reactive()',
+      description: 'Complete o reactive() para o form e os v-model com os modificadores corretos.',
+      xpReward: 35,
+      template: `<script setup>
+import { reactive, computed } from 'vue'
+
+const form = ___({
+  username: '',
+  age: 0,
+  newsletter: false,
+})
+
+const isValid = computed(() =>
+  form.username.length > 2 && form.age >= 18
+)
+</script>
+
+<template>
+  <input ___ placeholder="Username" />
+  <input ___ type="number" placeholder="Idade" />
+  <label>
+    <input type="checkbox" v-model="form.newsletter" />
+    Receber newsletter
+  </label>
+  <p v-if="isValid">✅ Formulário válido!</p>
+  <p v-else>❌ Preencha corretamente</p>
+</template>`,
+      blanks: ['reactive', 'v-model.trim="form.username"', 'v-model.number="form.age"'],
+      solution: `<script setup>
+import { reactive, computed } from 'vue'
+
+const form = reactive({
+  username: '',
+  age: 0,
+  newsletter: false,
+})
+
+const isValid = computed(() =>
+  form.username.length > 2 && form.age >= 18
+)
+</script>
+
+<template>
+  <input v-model.trim="form.username" placeholder="Username" />
+  <input v-model.number="form.age" type="number" placeholder="Idade" />
+  <label>
+    <input type="checkbox" v-model="form.newsletter" />
+    Receber newsletter
+  </label>
+  <p v-if="isValid">✅ Formulário válido!</p>
+  <p v-else>❌ Preencha corretamente</p>
+</template>`,
+      hint: 'reactive() agrupa campos do form num objeto. Use .trim para texto e .number para números.',
+    },
+    {
+      id: 'form-ch-5',
       type: 'fix-bug',
       title: 'Bugs no formulário',
-      description: 'O formulário tem 3 bugs: checkbox não atualiza, número não é numérico, e o form recarrega a página. Corrija.',
+      description: 'O formulário tem 3 erros. Encontre e corrija.',
       xpReward: 30,
       buggyCode: `<script setup>
 import { ref } from 'vue'
 const accepted = ref(false)
 const quantity = ref(1)
-const email = ref('')
 
 function submit() {
-  console.log(quantity.value + 1) // deveria dar 2, mas dá "11"
+  console.log(quantity.value + 1)
 }
 </script>
 
@@ -419,8 +463,7 @@ function submit() {
     <p>Aceito: {{ accepted }}</p>
 
     <input type="number" v-model="quantity" />
-
-    <input type="email" :value="email" />
+    <p>Qty + 1 = {{ quantity + 1 }}</p>
 
     <button type="submit">Enviar</button>
   </form>
@@ -429,10 +472,9 @@ function submit() {
 import { ref } from 'vue'
 const accepted = ref(false)
 const quantity = ref(1)
-const email = ref('')
 
 function submit() {
-  console.log(quantity.value + 1) // 2 ✅
+  console.log(quantity.value + 1)
 }
 </script>
 
@@ -442,13 +484,12 @@ function submit() {
     <p>Aceito: {{ accepted }}</p>
 
     <input type="number" v-model.number="quantity" />
-
-    <input type="email" v-model="email" />
+    <p>Qty + 1 = {{ quantity + 1 }}</p>
 
     <button type="submit">Enviar</button>
   </form>
 </template>`,
-      explanation: '1) Checkbox precisa de v-model, não :checked (unidirecional). 2) .number converte para number. 3) email precisa de v-model. 4) .prevent no submit.',
+      explanation: '1) :checked é unidirecional — use v-model para two-way binding no checkbox. 2) v-model.number converte o valor para number. 3) @submit sem .prevent recarrega a página.',
     },
   ],
 }

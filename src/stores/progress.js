@@ -18,6 +18,7 @@ function defaultState() {
     completedLessons: [],   // array of lesson IDs
     completedChallenges: [], // array of challenge IDs
     completedModules: [],   // array of module IDs
+    completedBossBattles: [], // array of boss battle IDs
     streakDays: 0,
     lastActivityDate: null,
     badges: [],
@@ -40,6 +41,7 @@ export const useProgressStore = defineStore('progress', {
     isLessonComplete: (state) => (id) => state.completedLessons.includes(id),
     isChallengeComplete: (state) => (id) => state.completedChallenges.includes(id),
     isModuleComplete: (state) => (id) => state.completedModules.includes(id),
+    isBossBattleComplete: (state) => (id) => (state.completedBossBattles || []).includes(id),
 
     streakBonus: (state) => Math.min(state.streakDays, 10) * XP_REWARDS.STREAK_BONUS,
   },
@@ -112,6 +114,16 @@ export const useProgressStore = defineStore('progress', {
       }
       this.lastActivityDate = today
       this.save()
+    },
+
+    completeBossBattle(bossBattleId, xpReward) {
+      if (!(this.completedBossBattles || []).includes(bossBattleId)) {
+        if (!this.completedBossBattles) this.completedBossBattles = []
+        this.completedBossBattles.push(bossBattleId)
+        this.updateStreak()
+        return this.addXP(xpReward)
+      }
+      return { levelUp: false }
     },
 
     reset() {
