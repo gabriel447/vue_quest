@@ -24,10 +24,21 @@ onMounted(async () => {
   await store.setFiles({ 'App.vue': initialCode })
 })
 
-const showHint = ref(false)
 const result = ref(props.isComplete ? 'correct' : null)
 const attempts = ref(0)
-const showSolution = ref(false)
+const showingSolution = ref(false)
+let savedUserCode = ''
+
+async function toggleSolution() {
+  if (!showingSolution.value) {
+    savedUserCode = store.activeFile.code
+    await store.setFiles({ 'App.vue': props.challenge.solution })
+    showingSolution.value = true
+  } else {
+    await store.setFiles({ 'App.vue': savedUserCode })
+    showingSolution.value = false
+  }
+}
 
 function normalize(str) {
   return str.replace(/<!--[\s\S]*?-->/g, '').replace(/\s+/g, ' ').trim()
@@ -43,10 +54,6 @@ function checkAnswer() {
   if (isCorrect) {
     emit('complete', { challengeId: props.challenge.id, firstTry: attempts.value === 1 })
   }
-}
-
-function toggleSolution() {
-  showSolution.value = !showSolution.value
 }
 
 const feedbackMessage = computed(() => {
@@ -102,40 +109,15 @@ const feedbackMessage = computed(() => {
       </div>
     </Transition>
 
-    <!-- Dica -->
-    <Transition name="fade">
-      <div v-if="showHint" class="hint-box">
-        💡 <span>{{ challenge.hint }}</span>
-      </div>
-    </Transition>
-
-    <!-- Solução revelada -->
-    <Transition name="fade">
-      <div v-if="showSolution && result !== 'correct'" class="solution-reveal">
-        <div class="code-label">Solução:</div>
-        <pre class="solution-code">{{ challenge.solution }}</pre>
-        <p v-if="challenge.explanation" class="explanation-text">{{ challenge.explanation }}</p>
-      </div>
-    </Transition>
-
     <!-- Actions -->
     <div class="challenge-actions">
       <button
-        v-if="result !== 'correct' && challenge.hint"
-        class="btn btn-ghost btn-sm"
-        :class="{ 'hint-active': showHint }"
-        @click="showHint = !showHint"
-      >
-        {{ showHint ? '🙈 Ocultar dica' : '💡 Ver dica' }}
-      </button>
-
-      <button
         v-if="result !== 'correct'"
         class="btn btn-ghost btn-sm"
-        :class="{ 'solution-active': showSolution }"
+        :class="{ 'solution-active': showingSolution }"
         @click="toggleSolution"
       >
-        {{ showSolution ? '🙈 Ocultar solução' : '👁️ Ver solução' }}
+        {{ showingSolution ? '↩️ Meu código' : '👁️ Ver solução' }}
       </button>
 
       <button
@@ -194,33 +176,6 @@ const feedbackMessage = computed(() => {
   height: 100%;
 }
 
-.solution-reveal {
-  background: rgba(13, 17, 23, 0.8);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-}
-
-.code-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: var(--text-dim);
-  margin-bottom: 0.5rem;
-}
-
-.solution-code {
-  background: #22212c;
-  border-radius: 8px;
-  padding: 1rem;
-  font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: 0.88rem;
-  line-height: 1.75;
-  color: #f8f8f2;
-  overflow-x: auto;
-  white-space: pre;
-}
-
 .feedback-banner {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
@@ -237,17 +192,6 @@ const feedbackMessage = computed(() => {
   opacity: 0.85;
 }
 
-.hint-box {
-  background: rgba(251,191,36,0.08);
-  border: 1px solid rgba(251,191,36,0.2);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  color: var(--xp-gold);
-  display: flex;
-  gap: 0.5rem;
-}
-
 .challenge-actions {
   display: flex;
   gap: 0.75rem;
@@ -255,17 +199,7 @@ const feedbackMessage = computed(() => {
   justify-content: flex-end;
 }
 
-.explanation-text {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-  white-space: pre-line;
-}
-
 .solution-active { color: var(--vue-green); border-color: rgba(66,184,131,0.3); }
-.hint-active { color: #fbbf24; border-color: rgba(251,191,36,0.3); }
 
 .feedback-enter-active { animation: fadeIn 0.3s ease; }
-.fade-enter-active { animation: fadeIn 0.25s ease; }
 </style>
