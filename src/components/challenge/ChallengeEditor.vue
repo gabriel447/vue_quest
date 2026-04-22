@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import { Repl, useStore } from '@vue/repl'
 import CodemirrorEditor from '@vue/repl/codemirror-editor'
 import '@vue/repl/style.css'
-import '@vue/repl/codemirror-editor.css'
 import CodeEditor from './CodeEditor.vue'
 
 const props = defineProps({
