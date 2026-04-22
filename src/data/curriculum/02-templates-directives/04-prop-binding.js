@@ -70,7 +70,9 @@ const temErro = ref(false)
     },
     {
       title: ':style — estilos dinâmicos',
-      body: `O :style aceita um objeto CSS com propriedades em camelCase. Pode ser um objeto direto ou um computed para lógica mais complexa.`,
+      body: `O :style aceita um objeto CSS com propriedades em camelCase. Pode ser um objeto direto ou um computed para lógica mais complexa.
+
+Atenção: propriedades numéricas como fontSize precisam da unidade explícita — escreva tamanho + 'px', não só tamanho. Sem a unidade, o browser ignora o estilo silenciosamente.`,
       code: `<script setup>
 import { ref, computed } from 'vue'
 const cor = ref('#42b883')

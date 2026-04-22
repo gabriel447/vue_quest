@@ -193,6 +193,51 @@ function resetar() {
       hint: 'No script, acesse o valor da ref sempre com .value.',
     },
     {
+      id: 'ref-ch-4',
+      type: 'fill-blank',
+      title: 'Toggle com ref booleana',
+      description: 'Complete o código para alternar a visibilidade do painel ao clicar no botão.',
+      xpReward: 25,
+      template: `<script setup>
+import { ref } from 'vue'
+
+const visivel = ___(false)
+
+function alternar() {
+  visivel.___ = !visivel.value
+}
+</script>
+
+<template>
+  <button @click="alternar">
+    {{ visivel ? 'Ocultar' : 'Mostrar' }}
+  </button>
+  <div v-if="visivel">
+    👋 Painel visível!
+  </div>
+</template>`,
+      blanks: ['ref', 'value'],
+      solution: `<script setup>
+import { ref } from 'vue'
+
+const visivel = ref(false)
+
+function alternar() {
+  visivel.value = !visivel.value
+}
+</script>
+
+<template>
+  <button @click="alternar">
+    {{ visivel ? 'Ocultar' : 'Mostrar' }}
+  </button>
+  <div v-if="visivel">
+    👋 Painel visível!
+  </div>
+</template>`,
+      hint: 'ref(false) cria um booleano reativo. Use .value para inverter com !visivel.value.',
+    },
+    {
       id: 'ref-ch-3',
       type: 'fix-bug',
       title: 'Corrija os bugs da ref',
@@ -251,51 +296,6 @@ function resetar() {
   <button @click="resetar">Resetar</button>
 </template>`,
       explanation: '1) score = ... reatribui a variável — use score.value =. 2) nome = ref(...) cria uma nova ref em vez de alterar — use nome.value =. Ambos quebram a reatividade.',
-    },
-    {
-      id: 'ref-ch-4',
-      type: 'fill-blank',
-      title: 'Toggle com ref booleana',
-      description: 'Complete o código para alternar a visibilidade do painel ao clicar no botão.',
-      xpReward: 25,
-      template: `<script setup>
-import { ref } from 'vue'
-
-const visivel = ___(false)
-
-function alternar() {
-  visivel.___ = !visivel.value
-}
-</script>
-
-<template>
-  <button @click="alternar">
-    {{ visivel ? 'Ocultar' : 'Mostrar' }}
-  </button>
-  <div v-if="visivel">
-    👋 Painel visível!
-  </div>
-</template>`,
-      blanks: ['ref', 'value'],
-      solution: `<script setup>
-import { ref } from 'vue'
-
-const visivel = ref(false)
-
-function alternar() {
-  visivel.value = !visivel.value
-}
-</script>
-
-<template>
-  <button @click="alternar">
-    {{ visivel ? 'Ocultar' : 'Mostrar' }}
-  </button>
-  <div v-if="visivel">
-    👋 Painel visível!
-  </div>
-</template>`,
-      hint: 'ref(false) cria um booleano reativo. Use .value para inverter com !visivel.value.',
     },
   ],
 }
