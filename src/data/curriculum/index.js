@@ -1,5 +1,13 @@
 export const modules = [
   {
+    id: 'getting-started',
+    title: 'Getting Started',
+    icon: '🚀',
+    description: 'Introdução ao Vue.js: o que é, como funciona e seu primeiro componente.',
+    color: '#06b6d4',
+    lessons: [],
+  },
+  {
     id: 'essentials',
     title: 'Essentials',
     icon: '🟢',

@@ -1,5 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Repl, useStore } from '@vue/repl'
+import CodemirrorEditor from '@vue/repl/codemirror-editor'
+import '@vue/repl/style.css'
+import '@vue/repl/codemirror-editor.css'
 import CodeEditor from './CodeEditor.vue'
 
 const props = defineProps({
@@ -11,12 +15,16 @@ const props = defineProps({
 
 const emit = defineEmits(['complete', 'skip'])
 
-// Se já concluído, mostra a solução; senão mostra o template/buggyCode
-const userAnswer = ref(
-  props.isComplete
-    ? props.challenge.solution
-    : (props.challenge.buggyCode || props.challenge.template || '')
-)
+const initialCode = props.isComplete
+  ? props.challenge.solution
+  : (props.challenge.buggyCode || props.challenge.template || '')
+
+const store = useStore()
+
+onMounted(async () => {
+  await store.setFiles({ 'App.vue': initialCode })
+})
+
 const showHint = ref(false)
 const result = ref(props.isComplete ? 'correct' : null)
 const attempts = ref(0)
@@ -29,19 +37,17 @@ function normalize(str) {
 function checkAnswer() {
   attempts.value++
   const expected = normalize(props.challenge.solution)
-  const given = normalize(userAnswer.value)
+  const given = normalize(store.activeFile.code)
   const isCorrect = given === expected
   result.value = isCorrect ? 'correct' : 'wrong'
 
   if (isCorrect) {
-    const firstTry = attempts.value === 1
-    emit('complete', { challengeId: props.challenge.id, firstTry })
+    emit('complete', { challengeId: props.challenge.id, firstTry: attempts.value === 1 })
   }
 }
 
 function toggleSolution() {
   showSolution.value = !showSolution.value
-  // nunca toca em userAnswer — o código do usuário permanece intacto
 }
 
 const feedbackMessage = computed(() => {
@@ -49,11 +55,11 @@ const feedbackMessage = computed(() => {
   if (result.value === 'wrong') return '❌ Não é isso. Tente novamente!'
   return null
 })
-
 </script>
 
 <template>
   <div class="challenge-editor">
+
     <!-- Header -->
     <div class="challenge-header">
       <div class="challenge-type-badge" :class="`type-${challenge.type}`">
@@ -61,42 +67,35 @@ const feedbackMessage = computed(() => {
         <span v-else-if="challenge.type === 'write-from-scratch'">Escreva do zero</span>
         <span v-else-if="challenge.type === 'fix-bug'">Corrija o bug</span>
       </div>
-      <div class="challenge-header-right">
-        <div class="xp-tag">
-          <span>⭐ {{ challenge.xpReward }} XP</span>
-          <span v-if="attempts === 1 && !result" class="bonus-hint">+bônus primeira tentativa!</span>
-        </div>
+      <div class="xp-tag">
+        <span>⭐ {{ challenge.xpReward }} XP</span>
       </div>
     </div>
 
     <!-- Descrição -->
     <div class="challenge-description">
       <h3>{{ challenge.title }}</h3>
-      <p style="white-space: pre-line">{{ challenge.description }}</p>
+      <p>{{ challenge.description }}</p>
     </div>
 
-    <!-- Setup code (se existir) -->
-    <div v-if="challenge.setup" class="setup-code">
-      <div class="code-label">Contexto:</div>
-      <CodeEditor :model-value="challenge.setup" :language="challenge.setup.trimStart().startsWith('<') ? 'html' : 'js'" readonly />
-    </div>
-
-    <!-- Editor -->
-    <div class="editor-area">
-      <div class="code-label">
-        Seu código:
-        <span v-if="challenge.type === 'fix-bug'" class="buggy-note">⚠️ Código com bug abaixo</span>
-      </div>
-      <CodeEditor v-model="userAnswer" :language="userAnswer.trimStart().startsWith('<') ? 'html' : 'js'" />
+    <!-- Repl: editor + preview ao vivo -->
+    <div class="repl-wrapper">
+      <Repl
+        :store="store"
+        :editor="CodemirrorEditor"
+        theme="dark"
+        layout="horizontal"
+        :show-compile-output="false"
+        :show-import-map="false"
+        :show-ts-config="false"
+        :clear-console="false"
+        :auto-resize="true"
+      />
     </div>
 
     <!-- Feedback -->
     <Transition name="feedback">
-      <div
-        v-if="result"
-        class="feedback-banner"
-        :class="result"
-      >
+      <div v-if="result" class="feedback-banner" :class="result">
         {{ feedbackMessage }}
         <div v-if="result === 'wrong' && challenge.explanation" class="explanation">
           {{ challenge.explanation }}
@@ -108,6 +107,19 @@ const feedbackMessage = computed(() => {
     <Transition name="fade">
       <div v-if="showHint" class="hint-box">
         💡 <span>{{ challenge.hint }}</span>
+      </div>
+    </Transition>
+
+    <!-- Solução revelada -->
+    <Transition name="fade">
+      <div v-if="showSolution && result !== 'correct'" class="solution-reveal">
+        <div class="code-label">Solução:</div>
+        <CodeEditor
+          :model-value="challenge.solution"
+          :language="challenge.solution.trimStart().startsWith('<') ? 'html' : 'js'"
+          readonly
+        />
+        <p v-if="challenge.explanation" class="explanation-text">{{ challenge.explanation }}</p>
       </div>
     </Transition>
 
@@ -139,17 +151,8 @@ const feedbackMessage = computed(() => {
       </button>
     </div>
 
-    <!-- Solução revelada -->
-    <Transition name="fade">
-      <div v-if="showSolution && result !== 'correct'" class="solution-reveal">
-        <div class="code-label">Solução:</div>
-        <CodeEditor :model-value="challenge.solution" :language="challenge.solution.trimStart().startsWith('<') ? 'html' : 'js'" readonly />
-        <p v-if="challenge.explanation" class="explanation-text">{{ challenge.explanation }}</p>
-      </div>
-    </Transition>
   </div>
 </template>
-
 
 <style scoped>
 .challenge-editor {
@@ -162,18 +165,6 @@ const feedbackMessage = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.challenge-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.challenge-num {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--vue-green);
 }
 
 .challenge-type-badge {
@@ -189,20 +180,26 @@ const feedbackMessage = computed(() => {
 .type-fix-bug { background: rgba(239,68,68,0.15); color: var(--danger); }
 
 .xp-tag {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--xp-gold);
 }
 
-.bonus-hint { font-size: 0.75rem; color: var(--vue-green); }
-
 .challenge-description h3 { margin-bottom: 0.5rem; }
 .challenge-description p { color: var(--text-muted); }
 
-.setup-code, .solution-reveal {
+.repl-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(121, 112, 169, 0.35);
+  height: 480px;
+}
+
+.repl-wrapper :deep(.vue-repl) {
+  height: 100%;
+}
+
+.solution-reveal {
   background: rgba(13, 17, 23, 0.8);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -215,14 +212,7 @@ const feedbackMessage = computed(() => {
   letter-spacing: 2px;
   color: var(--text-dim);
   margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
-
-.buggy-note { color: var(--danger); font-weight: 600; letter-spacing: normal; }
-
-.editor-area { display: flex; flex-direction: column; }
 
 .feedback-banner {
   padding: 0.75rem 1rem;
