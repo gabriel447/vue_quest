@@ -1,9 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Repl, useStore } from '@vue/repl'
+import { Repl, useStore, useVueImportMap } from '@vue/repl'
 import CodemirrorEditor from '@vue/repl/codemirror-editor'
 import '@vue/repl/style.css'
-import CodeEditor from './CodeEditor.vue'
 
 const props = defineProps({
   challenge: { type: Object, required: true },
@@ -18,7 +17,8 @@ const initialCode = props.isComplete
   ? props.challenge.solution
   : (props.challenge.buggyCode || props.challenge.template || '')
 
-const store = useStore()
+const { importMap } = useVueImportMap()
+const store = useStore({ builtinImportMap: importMap })
 
 onMounted(async () => {
   await store.setFiles({ 'App.vue': initialCode })
@@ -113,11 +113,7 @@ const feedbackMessage = computed(() => {
     <Transition name="fade">
       <div v-if="showSolution && result !== 'correct'" class="solution-reveal">
         <div class="code-label">Solução:</div>
-        <CodeEditor
-          :model-value="challenge.solution"
-          :language="challenge.solution.trimStart().startsWith('<') ? 'html' : 'js'"
-          readonly
-        />
+        <pre class="solution-code">{{ challenge.solution }}</pre>
         <p v-if="challenge.explanation" class="explanation-text">{{ challenge.explanation }}</p>
       </div>
     </Transition>
@@ -211,6 +207,18 @@ const feedbackMessage = computed(() => {
   letter-spacing: 2px;
   color: var(--text-dim);
   margin-bottom: 0.5rem;
+}
+
+.solution-code {
+  background: #22212c;
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: #f8f8f2;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .feedback-banner {
